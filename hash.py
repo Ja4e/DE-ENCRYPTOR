@@ -27,6 +27,7 @@ def crack_hash(hash_type, hash_mode):
             if a in ("YES", "Y"):
                 command = ['hashcat', '-m', hash_mode, hash_file, '-a', '3', '--force', '-1', '?l?u?d', '-i', '?1?1?1?1?1?1?1?1']
             else:
+                print("WARNING! It will take a long time to crack if the hash is complex or long.")
                 command = ['hashcat', '-m', hash_mode, hash_file, '-a', '3', '--force', '-i', '?a?a?a?a?a?a?a?a']
         else:
             command = ['hashcat', '-m', hash_mode, hash_file, wordlist_path, '--force']
