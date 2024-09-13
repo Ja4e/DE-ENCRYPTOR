@@ -4,12 +4,16 @@ import os
 
 def hash_string(hash_type):
     d = input(f"Enter a string to hash with {hash_type}: ")
-    if hash_type == "SHA-512":
-        hashed_value = hashlib.sha512(d.encode('utf-8')).hexdigest()
-    elif hash_type == "SHA-256":
-        hashed_value = hashlib.sha256(d.encode('utf-8')).hexdigest()
+    hash_functions = {
+        "SHA-512": hashlib.sha512,
+        "SHA-256": hashlib.sha256
+    }
     
-    print(f"{hash_type} Hash:", hashed_value)
+    if hash_type in hash_functions:
+        hashed_value = hash_functions[hash_type](d.encode('utf-8')).hexdigest()
+        print(f"{hash_type} Hash:", hashed_value)
+    else:
+        print("Unsupported hash type.")
 
 def crack_hash(hash_type, hash_mode):
     hash_to_crack = input(f"Enter the {hash_type} hash you want to crack: ")
@@ -38,7 +42,7 @@ def crack_hash(hash_type, hash_mode):
         print("\nProgram interrupted. Exiting...")
     finally:
         os.remove(hash_file)
-        
+
 while True:
     try:
         b = input("SHA512 or SHA256 (ALL RAW): ").upper()
