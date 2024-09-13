@@ -6,7 +6,8 @@ def hash_string(hash_type):
     d = input(f"Enter a string to hash with {hash_type}: ")
     hash_functions = {
         "SHA-512": hashlib.sha512,
-        "SHA-256": hashlib.sha256
+        "SHA-256": hashlib.sha256,
+        "MD5": hashlib.md5
     }
     
     if hash_type in hash_functions:
@@ -31,7 +32,7 @@ def crack_hash(hash_type, hash_mode):
             if a in ("YES", "Y"):
                 command = ['hashcat', '-m', hash_mode, hash_file, '-a', '3', '--force', '-1', '?l?u?d', '-i', '?1?1?1?1?1?1?1?1']
             else:
-                print("WARNING! It will take a long time to crack if the hash is complex or long.")
+                print("WARNING! It will take a long time to crack if the hash is complex or long. Long password increases cracking time exponentially.")
                 command = ['hashcat', '-m', hash_mode, hash_file, '-a', '3', '--force', '-i', '?a?a?a?a?a?a?a?a']
         else:
             command = ['hashcat', '-m', hash_mode, hash_file, wordlist_path, '--force']
@@ -43,36 +44,38 @@ def crack_hash(hash_type, hash_mode):
     finally:
         os.remove(hash_file)
 
+def handle_action(hash_type, mode, action):
+    if action in ("HASH", "1"):
+        hash_string(hash_type)
+    elif action in ("CRACK", "2"):
+        crack_hash(hash_type, mode)
+    else:
+        print("Please choose 'HASH' (1) or 'CRACK' (2).")
+
 while True:
     try:
-        b = input("SHA512 or SHA256 (ALL RAW): ").upper()
+        b = input("SHA512 or SHA256 or MD5 (ALL RAW): ").upper()
         
         if b in ("SHA512", "512", "1"):
             c = "SHA-512"
             mode = "1700"
             a = input(f"HASH or CRACK {c}: ").upper()
+            handle_action(c, mode, a)
             
-            if a in ("HASH", "1"):
-                hash_string(c)
-            elif a in ("CRACK", "2"):
-                crack_hash(c, mode)
-            else:
-                print("Please choose 'HASH' (1) or 'CRACK' (2).")
-
         elif b in ("SHA256", "256", "2"):
             c = "SHA-256"
             mode = "1400"
             a = input(f"HASH or CRACK {c}: ").upper()
-
-            if a in ("HASH", "1"):
-                hash_string(c)
-            elif a in ("CRACK", "2"):
-                crack_hash(c, mode)
-            else:
-                print("Please choose 'HASH' (1) or 'CRACK' (2).")
-
+            handle_action(c, mode, a)
+            
+        elif b in ("MD5", "5", "3"):
+            c = "MD5"
+            mode = "0"
+            a = input(f"HASH or CRACK {c}: ").upper()
+            handle_action(c, mode, a)
+        
         else:
-            print("Invalid selection. Please choose SHA512 (1) or SHA256 (2).")
+            print("Invalid selection. Please choose SHA512 (1), SHA256 (2), or MD5 (3).")
 
     except KeyboardInterrupt:
         print("\nProgram interrupted. Exiting...")
