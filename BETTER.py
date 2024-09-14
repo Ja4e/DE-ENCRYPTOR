@@ -173,7 +173,7 @@ def hash_cracking():
 
 
 def choose_hash_type():
-    print("Available hash types:")
+    print("\nAvailable hash types:")
     for i, hash_type in enumerate(hash_functions.keys(), 1):
         print(f"{i}: {hash_type}")
 
@@ -248,13 +248,13 @@ def main():
         elif choice == '2':
             hash_cracking()
         elif choice == '3':
-            operation = input("Choose operation (encrypt/decrypt): ").strip().lower()
+            operation = input("\nChoose operation (encrypt/decrypt): ").strip().lower()
             if operation in ("encrypt","1", "decrypt","2"):
                 aes_encrypt_decrypt(operation)
             else:
                 print("Invalid operation.")
         elif choice == '4':
-            operation = input("Choose operation (encrypt/decrypt): ").strip().lower()
+            operation = input("\nChoose operation (encrypt/decrypt): ").strip().lower()
             if operation in ("encrypt","1", "decrypt","2"):
                 rsa_encrypt_decrypt(operation)
             else:
