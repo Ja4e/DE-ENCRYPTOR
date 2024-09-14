@@ -131,7 +131,7 @@ def hash_cracking():
         return
 
     use_file = input(Fore.CYAN + f"Is the {hash_type} hash in a file? (yes/no): ").strip().lower()
-
+    
     if use_file in ("yes", "y"):
         file_path = input(Fore.CYAN + f"Enter the path to the file containing the {hash_type} hash: ").strip()
         if not os.path.isfile(file_path):
@@ -139,21 +139,20 @@ def hash_cracking():
             return
         with open(file_path, "r") as f:
             hash_to_crack = f.read().strip()
-            base64_decode = input(Fore.CYAN + "Do you need to decode this hash from Base64? (yes/no): ").strip().lower()
-            if base64_decode in ("yes", "y"):
-                hash_to_crack = decode_base64(hash_to_crack)
     else:
         hash_to_crack = input(Fore.CYAN + f"Enter the {hash_type} hash you want to crack: ").strip()
-        base64_decode = input(Fore.CYAN + "Do you need to decode this hash from Base64? (yes/no): ").strip().lower()
-        if base64_decode in ("yes", "y"):
-            hash_to_crack = decode_base64(hash_to_crack)
+    
+    base64_decode = input(Fore.CYAN + "Do you need to decode this hash from Base64? (yes/no): ").strip().lower()
+    if base64_decode in ("yes", "y"):
+        hash_to_crack = decode_base64(hash_to_crack).decode('utf-8')
 
-    wordlist_path = input(Fore.CYAN + "Enter the path to your wordlist file (leave blank for brute-force): ").strip()
     hash_file = "hash_to_crack.txt"
     with open(hash_file, "w") as f:
         f.write(hash_to_crack + "\n")
-
+    
     try:
+        wordlist_path = input(Fore.CYAN + "Enter the path to your wordlist file (leave blank for brute-force): ").strip()
+        
         if not wordlist_path:
             print(Fore.YELLOW + "No wordlist provided. Switching to combinatorial attack...")
             no_symbols = input(Fore.CYAN + "No symbols (yes/no)?: ").strip().lower()
@@ -170,10 +169,14 @@ def hash_cracking():
             print(Fore.GREEN + f"Dictionary attack command: {' '.join(command)}")
 
         subprocess.run(command)
+        print("If hashcat is done and quit itself no password shown, you can go ~/.local/share/hashcat/hashcat.potfile to find the password")
     except KeyboardInterrupt:
         print(Fore.YELLOW + "\nProgram interrupted. Exiting...")
     finally:
-        os.remove(hash_file)
+        if os.path.isfile(hash_file):
+            os.remove(hash_file)
+
+
 
 def choose_hash_type():
     print("\n" + Fore.GREEN + "Available hash types:")
