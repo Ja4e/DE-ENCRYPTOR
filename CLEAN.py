@@ -1,5 +1,6 @@
 import base64
 import os
+import hashlib
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.PublicKey import RSA
 from Crypto.Util.Padding import pad, unpad
