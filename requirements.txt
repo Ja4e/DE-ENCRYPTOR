@@ -2,3 +2,4 @@ pycryptodome
 fuzzywuzzy
 prettytable
 colorama
+tkinter
