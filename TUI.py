@@ -49,8 +49,8 @@ hashcat_modes = {
     "SHA-256": "1400",
     "SHA-384": "10800",
     "SHA-224": "1300",
-    "SHA-512/224": "20400",
-    "SHA-512/256": "20500",
+    "SHA-512/224": "1900",
+    "SHA-512/256": "1910",
     "MD5": "0",
     "MD4": "900",
     "SHA1": "100",
@@ -109,7 +109,7 @@ def hash_string(hash_type):
             key = os.urandom(32)
             hashed_value = hash_func(data, key).hex()
         else:
-            hashed_value = hash_func(data).hexdigest()
+            hashed_value = hash_func(data).hex() if hash_type in ["SHA-512/224", "SHA-512/256"] else hash_func(data).hexdigest()
 
         base64_encode = input(Fore.CYAN + "Do you want to encode the hash in Base64? (yes/no): ").strip().lower()
         if base64_encode in ("yes", "y"):
@@ -118,7 +118,6 @@ def hash_string(hash_type):
         print(Fore.GREEN + f"{hash_type} Hash: {hashed_value}")
     else:
         print(Fore.RED + "Unsupported hash type.")
-
 
 
 def hash_cracking():
