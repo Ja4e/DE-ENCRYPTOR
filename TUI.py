@@ -35,7 +35,7 @@ hash_functions = {
     "SHA-512/224": lambda data: hashlib.sha512(data).digest()[:28],
     "SHA-512/256": lambda data: hashlib.sha512(data).digest()[32:64],
     "MD5": hashlib.md5,
-    "MD4": lambda data: MD4.new(data).hexdigest(),
+    "MD4": lambda data: MD4.new(data),
     "SHA3-224": hashlib.sha3_224,
     "SHA3-256": hashlib.sha3_256,
     "SHA3-384": hashlib.sha3_384,
@@ -93,22 +93,23 @@ def hash_string(hash_type):
         return
 
     if hash_type in hash_functions:
+        hash_func = hash_functions[hash_type]
         if hash_type in ["SHAKE128", "SHAKE256"]:
             length = int(input(Fore.CYAN + "Enter output length (bytes): "))
-            hashed_value = hash_functions[hash_type](data, length)
+            hashed_value = hash_func(data, length).hex()
         elif hash_type in ["cSHAKE128", "cSHAKE256"]:
             customization = input(Fore.CYAN + "Enter customization string: ")
             length = int(input(Fore.CYAN + "Enter output length (bytes): "))
-            hashed_value = hash_functions[hash_type](data, length, customization)
+            hashed_value = hash_func(data, length, customization).hex()
         elif hash_type in ["KMAC128", "KMAC256"]:
-            key = os.urandom(16)
+            key = os.urandom(16) if hash_type == "KMAC128" else os.urandom(32)
             customization = input(Fore.CYAN + "Enter customization string: ")
-            hashed_value = hash_functions[hash_type](data, key, customization)
+            hashed_value = hash_func(data, key, customization).hex()
         elif hash_type == "Poly1305":
             key = os.urandom(32)
-            hashed_value = hash_functions[hash_type](data, key)
+            hashed_value = hash_func(data, key).hex()
         else:
-            hashed_value = hash_functions[hash_type](data).hexdigest()
+            hashed_value = hash_func(data).hexdigest()
 
         base64_encode = input(Fore.CYAN + "Do you want to encode the hash in Base64? (yes/no): ").strip().lower()
         if base64_encode in ("yes", "y"):
@@ -117,6 +118,8 @@ def hash_string(hash_type):
         print(Fore.GREEN + f"{hash_type} Hash: {hashed_value}")
     else:
         print(Fore.RED + "Unsupported hash type.")
+
+
 
 def hash_cracking():
     hash_type = choose_hash_type()
