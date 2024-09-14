@@ -1,6 +1,6 @@
-import base64
-import os
 import hashlib
+import os
+import base64
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.PublicKey import RSA
 from Crypto.Util.Padding import pad, unpad
@@ -11,7 +11,6 @@ aes_options = {
     1: ("AES-128", 16),
     2: ("AES-192", 24),
     3: ("AES-256", 32),
-    4: ("AES-512", 64),  # Custom addition, not a standard AES key size
 }
 
 rsa_key_sizes = {
@@ -25,7 +24,6 @@ def encode_base64(data):
 
 def decode_base64(encoded_data):
     try:
-        # Add padding if necessary
         missing_padding = len(encoded_data) % 4
         if missing_padding:
             encoded_data += '=' * (4 - missing_padding)
@@ -34,26 +32,59 @@ def decode_base64(encoded_data):
         print(f"Error decoding base64 data: {e}")
         return None
 
-def aes_encrypt(plaintext, key, iv=None):
+def aes_encrypt(plaintext, key=None, mode='CBC', iv=None):
     try:
-        key_hashed = hashlib.sha256(key).digest()
-        if iv is None:
-            iv = os.urandom(16)
-        cipher = AES.new(key_hashed, AES.MODE_CBC, iv)
-        padded_plaintext = pad(plaintext, AES.block_size)
-        ciphertext = cipher.encrypt(padded_plaintext)
-        return ciphertext, iv
+        if key is None:
+            key_size = 16  # Default to AES-128
+            key = get_random_bytes(key_size)
+        else:
+            key_size = len(key)
+            key = hashlib.sha256(key).digest()[:key_size]  # Ensure key is the correct length
+
+        if mode == 'ECB':
+            cipher = AES.new(key, AES.MODE_ECB)
+            padded_plaintext = pad(plaintext, AES.block_size)
+            ciphertext = cipher.encrypt(padded_plaintext)
+            return ciphertext, None
+        elif mode == 'CBC':
+            if iv is None:
+                iv = os.urandom(16)
+            cipher = AES.new(key, AES.MODE_CBC, iv)
+            padded_plaintext = pad(plaintext, AES.block_size)
+            ciphertext = cipher.encrypt(padded_plaintext)
+            return ciphertext, iv
+        else:
+            raise ValueError("Invalid AES mode selected")
     except Exception as e:
         print(f"Encryption error: {str(e)}")
         return None, None
 
-def aes_decrypt(ciphertext, key, iv):
+def aes_decrypt(ciphertext, key=None, iv=None, mode='CBC'):
     try:
-        key_hashed = hashlib.sha256(key).digest()
-        cipher = AES.new(key_hashed, AES.MODE_CBC, iv)
-        decrypted_padded_plaintext = cipher.decrypt(ciphertext)
-        decrypted_plaintext = unpad(decrypted_padded_plaintext, AES.block_size)
-        return decrypted_plaintext
+        if key is None:
+            key = input("Enter AES key (base64): ")
+            key = decode_base64(key)
+
+        if key is None:
+            raise ValueError("Key must be provided for decryption")
+
+        key_size = len(key)
+        key = hashlib.sha256(key).digest()[:key_size]  # Ensure key is the correct length
+
+        if mode == 'ECB':
+            cipher = AES.new(key, AES.MODE_ECB)
+            decrypted_padded_plaintext = cipher.decrypt(ciphertext)
+            decrypted_plaintext = unpad(decrypted_padded_plaintext, AES.block_size)
+            return decrypted_plaintext
+        elif mode == 'CBC':
+            if iv is None:
+                raise ValueError("IV must be provided for CBC mode")
+            cipher = AES.new(key, AES.MODE_CBC, iv)
+            decrypted_padded_plaintext = cipher.decrypt(ciphertext)
+            decrypted_plaintext = unpad(decrypted_padded_plaintext, AES.block_size)
+            return decrypted_plaintext
+        else:
+            raise ValueError("Invalid AES mode selected")
     except Exception as e:
         print(f"Decryption error: {str(e)}")
         return None
@@ -92,53 +123,73 @@ def rsa_decrypt(ciphertext, private_key):
         print(f"Error decrypting data: {e}")
         return None
 
-def select_aes_type():
-    print("Available AES types:")
-    for i, (desc, _) in aes_options.items():
-        print(f"{i}. {desc}")
-    selected_option = int(input("Enter your choice: "))
-    return aes_options.get(selected_option, None)
+def select_aes_key_size():
+    print("Select AES key size:")
+    for key, (name, _) in aes_options.items():
+        print(f"{key}. {name}")
+    choice = input("Enter choice: ")
+    try:
+        return aes_options[int(choice)]
+    except (ValueError, KeyError):
+        return None
+
+def select_aes_mode():
+    print("Select AES mode:")
+    print("1. ECB")
+    print("2. CBC")
+    choice = input("Enter choice: ")
+    return 'ECB' if choice == '1' else 'CBC' if choice == '2' else None
 
 def select_rsa_key_size():
-    print("Available RSA key sizes:")
-    for i, (desc, _) in rsa_key_sizes.items():
-        print(f"{i}. {desc}")
-    selected_option = int(input("Enter your choice: "))
-    return rsa_key_sizes.get(selected_option, None)
+    print("Select RSA key size:")
+    for key, (name, _) in rsa_key_sizes.items():
+        print(f"{key}. {name}")
+    choice = input("Enter choice: ")
+    try:
+        return rsa_key_sizes[int(choice)]
+    except (ValueError, KeyError):
+        return None
 
 def main():
     while True:
-        print("Options:")
-        print("1. Encrypt AES")
-        print("2. Decrypt AES")
-        print("3. Encrypt RSA")
-        print("4. Decrypt RSA")
-        print("5. Exit")
+        print("\nOptions:")
+        print("3. Encrypt AES")
+        print("4. Decrypt AES")
+        print("5. Encrypt RSA")
+        print("6. Decrypt RSA")
+        print("7. Exit")
         choice = input("Enter your choice: ")
 
-        if choice == '1':
-            aes_type = select_aes_type()
-            if aes_type:
-                key = get_random_bytes(aes_type[1])
+        if choice == '3':
+            aes_type = select_aes_key_size()
+            aes_mode = select_aes_mode()
+            if aes_type and aes_mode:
+                key_size = aes_type[1]
+                key = get_random_bytes(key_size)
                 plaintext = input("Enter plaintext: ").encode('utf-8')
-                ciphertext, iv = aes_encrypt(plaintext, key)
+                ciphertext, iv = aes_encrypt(plaintext, key, mode=aes_mode)
                 if ciphertext:
                     print(f"Encrypted ciphertext (base64): {encode_base64(ciphertext)}")
-                    print(f"IV (base64): {encode_base64(iv)}")
+                    if iv:
+                        print(f"IV (base64): {encode_base64(iv)}")
+                    print(f"Key (base64): {encode_base64(key)}")
             else:
-                print("Invalid AES type selected")
-        elif choice == '2':
-            aes_type = select_aes_type()
-            if aes_type:
-                key = get_random_bytes(aes_type[1])
-                iv = decode_base64(input("Enter IV (base64): "))
+                print("Invalid AES key size or mode selected")
+        elif choice == '4':
+            aes_type = select_aes_key_size()
+            aes_mode = select_aes_mode()
+            if aes_type and aes_mode:
+                key_size = aes_type[1]
+                key = input("Enter AES key (base64): ")
+                key = decode_base64(key)
+                iv = decode_base64(input("Enter IV (base64): ")) if aes_mode == 'CBC' else None
                 ciphertext = decode_base64(input("Enter ciphertext (base64): "))
-                plaintext = aes_decrypt(ciphertext, key, iv)
+                plaintext = aes_decrypt(ciphertext, key, iv=iv, mode=aes_mode)
                 if plaintext:
                     print(f"Decrypted plaintext: {plaintext.decode('utf-8')}")
             else:
-                print("Invalid AES type selected")
-        elif choice == '3':
+                print("Invalid AES key size or mode selected")
+        elif choice == '5':
             rsa_key_size = select_rsa_key_size()
             if rsa_key_size:
                 private_key, public_key = rsa_generate_key_pair(rsa_key_size[1])
@@ -150,16 +201,21 @@ def main():
                     print(f"Encrypted ciphertext (base64): {encode_base64(ciphertext)}")
             else:
                 print("Invalid RSA key size selected")
-        elif choice == '4':
+        elif choice == '6':
             private_key_path = input("Enter the path to the private key file (PEM): ")
-            with open(private_key_path, 'rb') as key_file:
-                private_key = key_file.read()
-            
-            ciphertext = decode_base64(input("Enter ciphertext (base64): "))
-            plaintext = rsa_decrypt(ciphertext, private_key)
-            if plaintext:
-                print(f"Decrypted plaintext: {plaintext.decode('utf-8')}")
-        elif choice == '5':
+            try:
+                with open(private_key_path, 'rb') as key_file:
+                    private_key = key_file.read()
+                ciphertext = decode_base64(input("Enter ciphertext (base64): "))
+                plaintext = rsa_decrypt(ciphertext, private_key)
+                if plaintext:
+                    print(f"Decrypted plaintext: {plaintext.decode('utf-8')}")
+            except FileNotFoundError:
+                print("Private key file not found.")
+            except Exception as e:
+                print(f"Error reading private key or decrypting data: {e}")
+        elif choice == '7':
+            print("Exiting...")
             break
         else:
             print("Invalid choice, please try again")
