@@ -104,7 +104,15 @@ def encode_base64(data):
     return base64.b64encode(data).decode('utf-8')
 
 def decode_base64(encoded_data):
-    return base64.b64decode(encoded_data)
+    try:
+        # Add padding if necessary
+        missing_padding = len(encoded_data) % 4
+        if missing_padding:
+            encoded_data += '=' * (4 - missing_padding)
+        return base64.b64decode(encoded_data)
+    except Exception as e:
+        print(f"Error decoding base64 data: {e}")
+        return None
 
 def aes_encrypt_ecb(plaintext, key):
     key_hashed = hashlib.sha256(key).digest()[:16]  # Adjust size for 128-bit key
@@ -144,10 +152,19 @@ def aes_decrypt(ciphertext, key, iv):
         print(f"Decryption error: {str(e)}")
         return None
 
+
 def rsa_generate_key_pair(key_size):
     key = RSA.generate(key_size)
     private_key = key.export_key()
     public_key = key.publickey().export_key()
+    
+    # Save keys to PEM files
+    with open('private_key.pem', 'wb') as priv_file:
+        priv_file.write(private_key)
+    
+    with open('public_key.pem', 'wb') as pub_file:
+        pub_file.write(public_key)
+    
     return private_key, public_key
 
 def rsa_encrypt(plaintext, public_key):
@@ -194,6 +211,7 @@ def hash_string():
     else:
         hashed_value = hash_functions[hash_type](d.encode('utf-8')).digest()
     print(f"Hashed value: {hashed_value.hex()}")
+    pass
 
 def hash_cracking():
     hash_value = input("Enter hash value to crack: ")
@@ -211,6 +229,7 @@ def hash_cracking():
             print(f"Hashcat error: {str(e)}")
     else:
         print("Hash type not supported for cracking")
+    pass
 
 def select_aes_type():
     print("Available AES types:")
@@ -225,6 +244,17 @@ def select_rsa_key_size():
         print(f"{i}. {desc}")
     selected_option = int(input("Enter your choice: "))
     return rsa_key_sizes.get(selected_option, None)
+
+def decode_base64(encoded_data):
+    try:
+        # Add padding if necessary
+        missing_padding = len(encoded_data) % 4
+        if missing_padding:
+            encoded_data += '=' * (4 - missing_padding)
+        return base64.b64decode(encoded_data)
+    except Exception as e:
+        print(f"Error decoding base64 data: {e}")
+        return None
 
 def main():
     while True:
@@ -268,8 +298,8 @@ def main():
             rsa_key_size = select_rsa_key_size()
             if rsa_key_size:
                 private_key, public_key = rsa_generate_key_pair(rsa_key_size[1])
-                print(f"Public Key: {encode_base64(public_key)}")
-                print(f"Private Key: {encode_base64(private_key)}")
+                print(f"Public Key saved to 'public_key.pem'")
+                print(f"Private Key saved to 'private_key.pem'")
                 plaintext = input("Enter plaintext to encrypt: ").encode('utf-8')
                 ciphertext = rsa_encrypt(plaintext, public_key)
                 if ciphertext:
@@ -277,7 +307,10 @@ def main():
             else:
                 print("Invalid RSA key size selected")
         elif choice == '6':
-            private_key = decode_base64(input("Enter private key (base64): "))
+            private_key_path = input("Enter the path to the private key file (PEM): ")
+            with open(private_key_path, 'rb') as key_file:
+                private_key = key_file.read()
+            
             ciphertext = decode_base64(input("Enter ciphertext (base64): "))
             plaintext = rsa_decrypt(ciphertext, private_key)
             if plaintext:
