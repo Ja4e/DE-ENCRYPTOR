@@ -1,22 +1,7 @@
-Uses hashcat
-makre sure hashcat is installed
-Scripts/tools
+Hash Functions and Hashcat Modes
+Hash Functions
 
-Encryption and Decryption Types:
-
-    AES Encryption/Decryption:
-        AES-128: 16-byte key
-        AES-192: 24-byte key
-        AES-256: 32-byte key
-
-    RSA Encryption/Decryption:
-        RSA-1024: 1024-bit key
-        RSA-2048: 2048-bit key
-        RSA-4096: 4096-bit key
-
-Hashing Functions (Not Encryption/Decryption):
-
-These hash functions can be used to hash data but not for encryption/decryption:
+The following hash functions are supported for hashing data:
 
     SHA Family:
         SHA-512
@@ -40,72 +25,73 @@ These hash functions can be used to hash data but not for encryption/decryption:
         BLAKE2s
         BLAKE2b
 
-    Shake Family:
-        SHAKE128
-        SHAKE256
+Python Implementation:
 
-    cSHAKE Family:
-        cSHAKE128
-        cSHAKE256
+python
 
-    KMAC Family:
-        KMAC128
-        KMAC256
+import hashlib
+from Cryptodome.Hash import MD4  # Ensure pycryptodome is installed
 
-    Poly1305: (Used for authentication, not encryption/decryption)
+hash_functions = {
+    "SHA-512": hashlib.sha512,
+    "SHA-256": hashlib.sha256,
+    "SHA-384": hashlib.sha384,
+    "SHA-224": hashlib.sha224,
+    "SHA-512/224": lambda data: hashlib.sha512(data).digest()[:28],
+    "SHA-512/256": lambda data: hashlib.sha512(data).digest()[32:64],
+    "MD5": hashlib.md5,
+    "MD4": lambda data: MD4.new(data).hexdigest(),
+    "SHA3-224": hashlib.sha3_224,
+    "SHA3-256": hashlib.sha3_256,
+    "SHA3-384": hashlib.sha3_384,
+    "SHA3-512": hashlib.sha3_512,
+    "BLAKE2s": hashlib.blake2s,
+    "BLAKE2b": hashlib.blake2b,
+}
 
-Hashcat Modes (For Cracking Hashes):
+Hashcat Modes
 
-These modes correspond to specific hashing algorithms used for hash cracking:
+The following modes correspond to the hash functions used for hash cracking with Hashcat:
 
     SHA Family:
-        SHA-512
-        SHA-256
-        SHA-384
-        SHA-224
-        SHA-512/224
-        SHA-512/256
+        SHA-512: 1700
+        SHA-256: 1400
+        SHA-384: 10800
+        SHA-224: 1300
+        SHA-512/224: 20400
+        SHA-512/256: 20500
 
     MD Family:
-        MD5
-        MD4
+        MD5: 0
+        MD4: 900
 
     SHA3 Family:
-        SHA3-224
-        SHA3-256
-        SHA3-384
-        SHA3-512
+        SHA3-224: 17300
+        SHA3-256: 17400
+        SHA3-384: 17500
+        SHA3-512: 17600
 
     BLAKE2 Family:
-        BLAKE2b
+        BLAKE2b: 600
 
-    Other Hash Types:
-        GOST R 34.11-2012 256-bit
-        GOST R 34.11-2012 512-bit
-        GOST R 34.11-94
-        GPG
-        Half MD5
-        Keccak Variants
-        Whirlpool
-        SipHash
-        HMAC Variants
-        PBKDF2 Variants
-        scrypt
-        phpass
-        TACACS+
-        SIP digest authentication (MD5)
-        IKE-PSK MD5
-        IKE-PSK SHA1
-        SNMPv3 HMAC Variants
-        WPA-EAPOL Variants
+Note: Make sure Hashcat is installed on your system to use these modes effectively.
+Encryption and Decryption Types
 
-Summary:
+AES Encryption/Decryption:
+
+    AES-128: 16-byte key
+    AES-192: 24-byte key
+    AES-256: 32-byte key
+
+RSA Encryption/Decryption:
+
+    RSA-1024: 1024-bit key
+    RSA-2048: 2048-bit key
+    RSA-4096: 4096-bit key
+
+Summary
 
     AES Encryption/Decryption: 3 key sizes (128, 192, 256 bits)
     RSA Encryption/Decryption: 3 key sizes (1024, 2048, 4096 bits)
 
-
-
-This tool can be used to hash and dehash and encrypt and decrypt popular
-
-bruteforcing aes or rsa seems impossible rn
+This tool can be used to hash and dehash data, as well as to encrypt and decrypt using AES and RSA. Note that brute-forcing AES or RSA keys is currently considered infeasible.
