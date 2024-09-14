@@ -38,14 +38,8 @@ hash_functions = {
     "SHA3-512": hashlib.sha3_512,
     "BLAKE2s": hashlib.blake2s,
     "BLAKE2b": hashlib.blake2b,
-    "SHAKE128": lambda data, length: hashlib.shake_128(data).digest(length),
-    "SHAKE256": lambda data, length: hashlib.shake_256(data).digest(length),
-    "cSHAKE128": lambda data, length, customization: hashlib.shake_128(data + customization.encode()).digest(length),
-    "cSHAKE256": lambda data, length, customization: hashlib.shake_256(data + customization.encode()).digest(length),
-    "KMAC128": lambda data, key, customization: hashlib.new('sha3_128', data + customization.encode(), key).digest(),
-    "KMAC256": lambda data, key, customization: hashlib.new('sha3_256', data + customization.encode(), key).digest(),
-    "Poly1305": lambda data, key: hashlib.new('sha256', data + key).digest()[:16],
 }
+
 
 hashcat_modes = {
     "SHA-512": "1700",
@@ -62,42 +56,8 @@ hashcat_modes = {
     "SHA3-384": "17500",
     "SHA3-512": "17600",
     "BLAKE2b": "600",
-    "GOST R 34.11-2012 256-bit": "11700",
-    "GOST R 34.11-2012 512-bit": "11800",
-    "GOST R 34.11-94": "6900",
-    "GPG": "17010",
-    "Half MD5": "5100",
-    "Keccak-224": "17700",
-    "Keccak-256": "17800",
-    "Keccak-384": "17900",
-    "Keccak-512": "18000",
-    "Whirlpool": "6100",
-    "SipHash": "10100",
-    "HMAC-MD5": "50",
-    "HMAC-SHA1": "150",
-    "HMAC-SHA256": "1450",
-    "HMAC-SHA512": "1750",
-    "PBKDF2-HMAC-MD5": "11900",
-    "PBKDF2-HMAC-SHA1": "12000",
-    "PBKDF2-HMAC-SHA256": "10900",
-    "PBKDF2-HMAC-SHA512": "12100",
-    "scrypt": "8900",
-    "phpass": "400",
-    "TACACS+": "16100",
-    "SIP digest authentication (MD5)": "11400",
-    "IKE-PSK MD5": "5300",
-    "IKE-PSK SHA1": "5400",
-    "SNMPv3 HMAC-MD5-96": "25100",
-    "SNMPv3 HMAC-SHA1-96": "25200",
-    "SNMPv3 HMAC-SHA224-128": "26700",
-    "SNMPv3 HMAC-SHA256-192": "26800",
-    "SNMPv3 HMAC-SHA384-256": "26900",
-    "SNMPv3 HMAC-SHA512-384": "27300",
-    "WPA-EAPOL-PBKDF2": "2500",
-    "WPA-EAPOL-PMK": "2501",
-    "WPA-PBKDF2-PMKID+EAPOL": "22000",
-    "WPA-PMK-PMKID+EAPOL": "22001",
 }
+
 
 def encode_base64(data):
     return base64.b64encode(data).decode('utf-8')
@@ -114,24 +74,38 @@ def decode_base64(encoded_data):
         return None
 
 def hash_string(hash_type):
-    d = input(f"Enter a string to hash with {hash_type}: ")
+    source_type = input("Hash text or file content? (text/file): ").strip().lower()
+    
+    if source_type in ("file","2"):
+        file_path = input("Enter the path to the file: ").strip()
+        if not os.path.isfile(file_path):
+            print("File does not exist. Please check the path and try again.")
+            return
+        with open(file_path, "rb") as file:
+            data = file.read()
+    elif source_type in ("text","1"):
+        data = input(f"Enter a string to hash with {hash_type}: ").encode('utf-8')
+    else:
+        print("Invalid choice.")
+        return
+
     if hash_type in hash_functions:
         if hash_type in ["SHAKE128", "SHAKE256"]:
             length = int(input("Enter output length (bytes): "))
-            hashed_value = hash_functions[hash_type](d.encode('utf-8'), length)
+            hashed_value = hash_functions[hash_type](data, length)
         elif hash_type in ["cSHAKE128", "cSHAKE256"]:
             customization = input("Enter customization string: ")
             length = int(input("Enter output length (bytes): "))
-            hashed_value = hash_functions[hash_type](d.encode('utf-8'), length, customization)
+            hashed_value = hash_functions[hash_type](data, length, customization)
         elif hash_type in ["KMAC128", "KMAC256"]:
             key = os.urandom(16)
             customization = input("Enter customization string: ")
-            hashed_value = hash_functions[hash_type](d.encode('utf-8'), key, customization)
+            hashed_value = hash_functions[hash_type](data, key, customization)
         elif hash_type == "Poly1305":
             key = os.urandom(32)
-            hashed_value = hash_functions[hash_type](d.encode('utf-8'), key)
+            hashed_value = hash_functions[hash_type](data, key)
         else:
-            hashed_value = hash_functions[hash_type](d.encode('utf-8')).hexdigest()
+            hashed_value = hash_functions[hash_type](data).hexdigest()
 
         base64_encode = input("Do you want to encode the hash in Base64? (yes/no): ").strip().lower()
         if base64_encode in ("yes", "y"):
@@ -140,6 +114,7 @@ def hash_string(hash_type):
         print(f"{hash_type} Hash:", hashed_value)
     else:
         print("Unsupported hash type.")
+
 
 def hash_cracking():
     hash_type = choose_hash_type()
