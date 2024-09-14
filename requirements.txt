@@ -2,5 +2,5 @@ pycryptodome
 fuzzywuzzy
 prettytable
 colorama
-tkinter
-tkinterdnd2 #drag and drop func GUI
+#tkinter
+#tkinterdnd2 #drag and drop func GUI
