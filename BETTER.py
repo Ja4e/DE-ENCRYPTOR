@@ -169,20 +169,33 @@ def hash_cracking():
         if base64_decode in ("yes", "y"):
             hash_to_crack = decode_base64(hash_to_crack)
 
-    wordlist_path = input("Enter the path to your wordlist file (leave blank for brute-force): ").strip() or None
+    wordlist_path = input("Enter the path to your wordlist file (leave blank for brute-force): ").strip()
     hash_file = "hash_to_crack.txt"
     with open(hash_file, "w") as f:
-        f.write(hash_to_crack)
-
-    cmd = ['hashcat', '-m', hash_mode, hash_file]
-    if wordlist_path:
-        cmd.append(wordlist_path)
+        f.write(hash_to_crack + "\n")
 
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        print(result.stdout)
-    except subprocess.CalledProcessError as e:
-        print(f"Error running hashcat: {e.stderr}")
+        if not wordlist_path:
+            print("No wordlist provided. Switching to combinatorial attack...")
+            no_symbols = input("No symbols (yes/no)?: ").strip().lower()
+            if no_symbols in ("yes", "y"):
+                command = ['hashcat', '-m', hash_mode, hash_file, '-a', '3', '--force', '-1', '?l?u?d', '-i', '?1?1?1?1?1?1?1?1']
+            else:
+                print("WARNING! It will take a long time to crack if the hash is complex or long. Long passwords increase cracking time exponentially.")
+                command = ['hashcat', '-m', hash_mode, hash_file, '-a', '3', '--force', '-i', '?a?a?a?a?a?a?a?a']
+        else:
+            if not os.path.isfile(wordlist_path):
+                print("Wordlist file does not exist. Please check the path and try again.")
+                return
+            command = ['hashcat', '-m', hash_mode, hash_file, wordlist_path, '--force']
+            print(f"Dictionary attack command: {' '.join(command)}")
+
+        subprocess.run(command)
+    except KeyboardInterrupt:
+        print("\nProgram interrupted. Exiting...")
+    finally:
+        os.remove(hash_file)
+
 
 def choose_hash_type():
     print("Available hash types:")
