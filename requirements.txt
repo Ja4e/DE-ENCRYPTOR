@@ -3,3 +3,4 @@ fuzzywuzzy
 prettytable
 colorama
 tkinter
+tkdnd2 #drag and drop func GUI
