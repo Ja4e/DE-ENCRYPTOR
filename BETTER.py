@@ -113,242 +113,168 @@ def decode_base64(encoded_data):
         print(f"Error decoding base64 data: {e}")
         return None
 
-def aes_encrypt(plaintext, key=None, mode='CBC', iv=None):
-    try:
-        if key is None:
-            key_size = 16  # Default to AES-128
-            key = get_random_bytes(key_size)
+def hash_string(hash_type):
+    d = input(f"Enter a string to hash with {hash_type}: ")
+    if hash_type in hash_functions:
+        if hash_type in ["SHAKE128", "SHAKE256"]:
+            length = int(input("Enter output length (bytes): "))
+            hashed_value = hash_functions[hash_type](d.encode('utf-8'), length)
+        elif hash_type in ["cSHAKE128", "cSHAKE256"]:
+            customization = input("Enter customization string: ")
+            length = int(input("Enter output length (bytes): "))
+            hashed_value = hash_functions[hash_type](d.encode('utf-8'), length, customization)
+        elif hash_type in ["KMAC128", "KMAC256"]:
+            key = os.urandom(16)
+            customization = input("Enter customization string: ")
+            hashed_value = hash_functions[hash_type](d.encode('utf-8'), key, customization)
+        elif hash_type == "Poly1305":
+            key = os.urandom(32)
+            hashed_value = hash_functions[hash_type](d.encode('utf-8'), key)
         else:
-            key_size = len(key)
-            key = hashlib.sha256(key).digest()[:key_size]  # Ensure key is the correct length
+            hashed_value = hash_functions[hash_type](d.encode('utf-8')).hexdigest()
 
-        if mode == 'ECB':
-            cipher = AES.new(key, AES.MODE_ECB)
-            padded_plaintext = pad(plaintext, AES.block_size)
-            ciphertext = cipher.encrypt(padded_plaintext)
-            return ciphertext, None
-        elif mode == 'CBC':
-            if iv is None:
-                iv = os.urandom(16)
-            cipher = AES.new(key, AES.MODE_CBC, iv)
-            padded_plaintext = pad(plaintext, AES.block_size)
-            ciphertext = cipher.encrypt(padded_plaintext)
-            return ciphertext, iv
-        else:
-            raise ValueError("Invalid AES mode selected")
-    except Exception as e:
-        print(f"Encryption error: {str(e)}")
-        return None, None
+        base64_encode = input("Do you want to encode the hash in Base64? (yes/no): ").strip().lower()
+        if base64_encode in ("yes", "y"):
+            hashed_value = encode_base64(hashed_value.encode('utf-8'))
 
-def aes_decrypt(ciphertext, key=None, iv=None, mode='CBC'):
+        print(f"{hash_type} Hash:", hashed_value)
+    else:
+        print("Unsupported hash type.")
+
+def hash_cracking():
+    hash_type = choose_hash_type()
+    if not hash_type:
+        return
+
+    hash_mode = hashcat_modes.get(hash_type)
+    if not hash_mode:
+        print("Hash mode not defined for this hash type.")
+        return
+
+    use_file = input(f"Is the {hash_type} hash in a file? (yes/no): ").strip().lower()
+
+    if use_file in ("yes", "y"):
+        file_path = input(f"Enter the path to the file containing the {hash_type} hash: ").strip()
+        if not os.path.isfile(file_path):
+            print("File does not exist. Please check the path and try again.")
+            return
+        with open(file_path, "r") as f:
+            hash_to_crack = f.read().strip()
+            base64_decode = input("Do you need to decode this hash from Base64? (yes/no): ").strip().lower()
+            if base64_decode in ("yes", "y"):
+                hash_to_crack = decode_base64(hash_to_crack)
+    else:
+        hash_to_crack = input(f"Enter the {hash_type} hash you want to crack: ").strip()
+        base64_decode = input("Do you need to decode this hash from Base64? (yes/no): ").strip().lower()
+        if base64_decode in ("yes", "y"):
+            hash_to_crack = decode_base64(hash_to_crack)
+
+    wordlist_path = input("Enter the path to your wordlist file (leave blank for brute-force): ").strip() or None
+    hash_file = "hash_to_crack.txt"
+    with open(hash_file, "w") as f:
+        f.write(hash_to_crack)
+
+    cmd = ['hashcat', '-m', hash_mode, hash_file]
+    if wordlist_path:
+        cmd.append(wordlist_path)
+
     try:
-        if key is None:
-            key = input("Enter AES key (base64): ")
-            key = decode_base64(key)
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        print(result.stdout)
+    except subprocess.CalledProcessError as e:
+        print(f"Error running hashcat: {e.stderr}")
 
-        if key is None:
-            raise ValueError("Key must be provided for decryption")
+def choose_hash_type():
+    print("Available hash types:")
+    for i, hash_type in enumerate(hash_functions.keys(), 1):
+        print(f"{i}: {hash_type}")
 
-        key_size = len(key)
-        key = hashlib.sha256(key).digest()[:key_size]  # Ensure key is the correct length
-
-        if mode == 'ECB':
-            cipher = AES.new(key, AES.MODE_ECB)
-            decrypted_padded_plaintext = cipher.decrypt(ciphertext)
-            decrypted_plaintext = unpad(decrypted_padded_plaintext, AES.block_size)
-            return decrypted_plaintext
-        elif mode == 'CBC':
-            if iv is None:
-                raise ValueError("IV must be provided for CBC mode")
-            cipher = AES.new(key, AES.MODE_CBC, iv)
-            decrypted_padded_plaintext = cipher.decrypt(ciphertext)
-            decrypted_plaintext = unpad(decrypted_padded_plaintext, AES.block_size)
-            return decrypted_plaintext
-        else:
-            raise ValueError("Invalid AES mode selected")
-    except Exception as e:
-        print(f"Decryption error: {str(e)}")
+    choice = int(input("Choose a hash type by number: "))
+    if 1 <= choice <= len(hash_functions):
+        return list(hash_functions.keys())[choice - 1]
+    else:
+        print("Invalid choice.")
         return None
 
-def rsa_generate_key_pair(key_size):
-    key = RSA.generate(key_size)
-    private_key = key.export_key()
-    public_key = key.publickey().export_key()
-    
-    # Save keys to PEM files
-    with open('private_key.pem', 'wb') as priv_file:
-        priv_file.write(private_key)
-    
-    with open('public_key.pem', 'wb') as pub_file:
-        pub_file.write(public_key)
-    
-    return private_key, public_key
+def aes_encrypt_decrypt(operation):
+    key_size = int(input("Choose AES key size (1: 128-bit, 2: 192-bit, 3: 256-bit): "))
+    if key_size not in aes_options:
+        print("Invalid key size.")
+        return
 
-def rsa_encrypt(plaintext, public_key):
-    try:
-        public_key = RSA.import_key(public_key)
-        cipher = PKCS1_OAEP.new(public_key)
-        ciphertext = cipher.encrypt(plaintext)
-        return ciphertext
-    except (ValueError, TypeError) as e:
-        print(f"Error encrypting data: {e}")
-        return None
+    key_size_bytes = aes_options[key_size][1]
+    key = input(f"Enter the AES key ({key_size_bytes * 8}-bit): ").encode()
+    if len(key) < key_size_bytes:
+        key = key.ljust(key_size_bytes, b'\0')
 
-def rsa_decrypt(ciphertext, private_key):
-    try:
-        private_key = RSA.import_key(private_key)
-        cipher = PKCS1_OAEP.new(private_key)
-        plaintext = cipher.decrypt(ciphertext)
-        return plaintext
-    except (ValueError, TypeError) as e:
-        print(f"Error decrypting data: {e}")
-        return None
+    iv = get_random_bytes(AES.block_size)
+    cipher = AES.new(key[:key_size_bytes], AES.MODE_CBC, iv)
 
-def hash_data(data, hash_algo):
-    try:
-        if hash_algo in hash_functions:
-            hasher = hash_functions[hash_algo]()
-            hasher.update(data)
-            return hasher.digest()
-        else:
-            print(f"Unsupported hash algorithm: {hash_algo}")
-            return None
-    except Exception as e:
-        print(f"Hashing error: {e}")
-        return None
+    if operation in ("encrypt","1"):
+        plaintext = input("Enter plaintext to encrypt: ").encode()
+        ciphertext = cipher.encrypt(pad(plaintext, AES.block_size))
+        print("Encrypted text (base64):", encode_base64(iv + ciphertext))
+    elif operation in ("decrypt","1"):
+        encrypted_text = input("Enter encrypted text (base64): ")
+        encrypted_data = decode_base64(encrypted_text)
+        iv = encrypted_data[:AES.block_size]
+        ciphertext = encrypted_data[AES.block_size:]
+        cipher = AES.new(key[:key_size_bytes], AES.MODE_CBC, iv)
+        decrypted_data = unpad(cipher.decrypt(ciphertext), AES.block_size)
+        print("Decrypted text:", decrypted_data.decode())
 
-def hmac_data(data, key, hash_algo):
-    try:
-        if hash_algo in hash_functions:
-            hasher = hash_functions[hash_algo]()
-            hmac_obj = HMAC.new(key, msg=data, digestmod=hasher)
-            return hmac_obj.digest()
-        else:
-            print(f"Unsupported hash algorithm: {hash_algo}")
-            return None
-    except Exception as e:
-        print(f"HMAC error: {e}")
-        return None
+def rsa_encrypt_decrypt(operation):
+    key_size = int(input("Choose RSA key size (1: 1024-bit, 2: 2048-bit, 3: 4096-bit): "))
+    if key_size not in rsa_key_sizes:
+        print("Invalid key size.")
+        return
 
-def crack_hash(hash_value, hash_algo, wordlist_file):
-    try:
-        with open(wordlist_file, 'r') as file:
-            for line in file:
-                word = line.strip().encode()
-                hashed_word = hash_data(word, hash_algo)
-                if hashed_word and hashed_word.hex() == hash_value:
-                    return word.decode()
-    except Exception as e:
-        print(f"Hash cracking error: {e}")
-        return None
-
-def select_aes_key_size():
-    print("Select AES key size:")
-    for key, (name, _) in aes_options.items():
-        print(f"{key}. {name}")
-    choice = input("Enter choice: ")
-    try:
-        return aes_options[int(choice)]
-    except (ValueError, KeyError):
-        return None
-
-def select_aes_mode():
-    print("Select AES mode:")
-    print("1. ECB")
-    print("2. CBC")
-    choice = input("Enter choice: ")
-    return 'ECB' if choice == '1' else 'CBC' if choice == '2' else None
-
-def select_rsa_key_size():
-    print("Select RSA key size:")
-    for key, (name, _) in rsa_key_sizes.items():
-        print(f"{key}. {name}")
-    choice = input("Enter choice: ")
-    try:
-        return rsa_key_sizes[int(choice)]
-    except (ValueError, KeyError):
-        return None
+    rsa_key = RSA.generate(rsa_key_sizes[key_size][1])
+    if operation == "encrypt":
+        public_key = rsa_key.publickey()
+        data = input("Enter data to encrypt: ").encode()
+        cipher_rsa = PKCS1_OAEP.new(public_key)
+        encrypted_data = cipher_rsa.encrypt(data)
+        print("Encrypted data (base64):", encode_base64(encrypted_data))
+    elif operation == "decrypt":
+        private_key = rsa_key
+        encrypted_data = decode_base64(input("Enter encrypted data (base64): "))
+        cipher_rsa = PKCS1_OAEP.new(private_key)
+        decrypted_data = cipher_rsa.decrypt(encrypted_data)
+        print("Decrypted data:", decrypted_data.decode())
 
 def main():
     while True:
         print("\nOptions:")
-        print("1. Hash a string")
-        print("2. Crack a hash")
-        print("3. Encrypt AES")
-        print("4. Decrypt AES")
-        print("5. Encrypt RSA")
-        print("6. Decrypt RSA")
-        print("7. Exit")
-        choice = input("Enter your choice: ")
+        print("1: Hash a string")
+        print("2: Crack a hash")
+        print("3: AES Encryption/Decryption")
+        print("4: RSA Encryption/Decryption")
+        print("5: Exit")
+        choice = input("Choose an option: ")
 
         if choice == '1':
-            hash_string()
+            hash_type = choose_hash_type()
+            if hash_type:
+                hash_string(hash_type)
         elif choice == '2':
             hash_cracking()
         elif choice == '3':
-            aes_type = select_aes_key_size()
-            aes_mode = select_aes_mode()
-            if aes_type and aes_mode:
-                key_size = aes_type[1]
-                key = get_random_bytes(key_size)
-                plaintext = input("Enter plaintext: ").encode('utf-8')
-                ciphertext, iv = aes_encrypt(plaintext, key, mode=aes_mode)
-                if ciphertext:
-                    print(f"Encrypted ciphertext (base64): {encode_base64(ciphertext)}")
-                    if iv:
-                        print(f"IV (base64): {encode_base64(iv)}")
-                    print(f"Key (base64): {encode_base64(key)}")
+            operation = input("Choose operation (encrypt/decrypt): ").strip().lower()
+            if operation in ("encrypt","1", "decrypt","2"):
+                aes_encrypt_decrypt(operation)
             else:
-                print("Invalid AES key size or mode selected")
+                print("Invalid operation.")
         elif choice == '4':
-            aes_type = select_aes_key_size()
-            aes_mode = select_aes_mode()
-            if aes_type and aes_mode:
-                key_size = aes_type[1]
-                key = input("Enter AES key (base64): ")
-                key = decode_base64(key)
-                iv = decode_base64(input("Enter IV (base64): ")) if aes_mode == 'CBC' else None
-                ciphertext = decode_base64(input("Enter ciphertext (base64): "))
-                plaintext = aes_decrypt(ciphertext, key, iv=iv, mode=aes_mode)
-                if plaintext:
-                    print(f"Decrypted plaintext: {plaintext.decode('utf-8')}")
+            operation = input("Choose operation (encrypt/decrypt): ").strip().lower()
+            if operation in ("encrypt","1", "decrypt","2"):
+                rsa_encrypt_decrypt(operation)
             else:
-                print("Invalid AES key size or mode selected")
+                print("Invalid operation.")
         elif choice == '5':
-            rsa_key_size = select_rsa_key_size()
-            if rsa_key_size:
-                private_key, public_key = rsa_generate_key_pair(rsa_key_size[1])
-                print(f"Public Key saved to 'public_key.pem'")
-                print(f"Private Key saved to 'private_key.pem'")
-                plaintext = input("Enter plaintext to encrypt: ").encode('utf-8')
-                ciphertext = rsa_encrypt(plaintext, public_key)
-                if ciphertext:
-                    print(f"Encrypted ciphertext (base64): {encode_base64(ciphertext)}")
-            else:
-                print("Invalid RSA key size selected")
-        elif choice == '6':
-            private_key_path = input("Enter the path to the private key file (PEM): ")
-            try:
-                with open(private_key_path, 'rb') as key_file:
-                    private_key = key_file.read()
-                ciphertext = decode_base64(input("Enter ciphertext (base64): "))
-                plaintext = rsa_decrypt(ciphertext, private_key)
-                if plaintext:
-                    print(f"Decrypted plaintext: {plaintext.decode('utf-8')}")
-            except FileNotFoundError:
-                print("Private key file not found.")
-            except Exception as e:
-                print(f"Error reading private key or decrypting data: {e}")
-        elif choice == '7':
-            print("Exiting...")
             break
         else:
-            print("Invalid choice, please try again")
+            print("Invalid choice.")
 
 if __name__ == "__main__":
-    while True:
-        try:
-            main()
-        except KeyboardInterrupt:
-            print("\nProgram interrupted. Exiting...")
-            break
+    main()
