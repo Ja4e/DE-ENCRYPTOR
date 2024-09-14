@@ -9,17 +9,18 @@ from Crypto.Hash import MD4, HMAC, SHA1, SHA256
 from Crypto.Random import get_random_bytes
 from fuzzywuzzy import process
 
+# Define AES options and RSA key sizes
 aes_options = {
-    "AES-128": 16,
-    "AES-192": 24,
-    "AES-256": 32,
-    "AES-512": 64,  # Custom addition, not a standard AES key size
+    1: ("AES-128", 16),
+    2: ("AES-192", 24),
+    3: ("AES-256", 32),
+    4: ("AES-512", 64),  # Custom addition, not a standard AES key size
 }
 
 rsa_key_sizes = {
-    "RSA-1024": 1024,
-    "RSA-2048": 2048,
-    "RSA-4096": 4096
+    1: ("RSA-1024", 1024),
+    2: ("RSA-2048", 2048),
+    3: ("RSA-4096", 4096),
 }
 
 # Define hash functions and modes
@@ -169,30 +170,39 @@ def rsa_decrypt(ciphertext, private_key):
         print(f"Error decrypting data: {e}")
         return None
 
-def hash_string(hash_type):
+def hash_string():
+    print("Available hash functions:")
+    for i, func in enumerate(hash_functions.keys(), start=1):
+        print(f"{i}. {func}")
+    choice = int(input("Enter your choice: "))
+    hash_type = list(hash_functions.keys())[choice - 1]
     d = input(f"Enter a string to hash with {hash_type}: ")
-    if hash_type in hash_functions:
-        if hash_type in ["SHAKE128", "SHAKE256"]:
-            length = int(input("Enter output length (bytes): "))
-            hashed_value = hash_functions[hash_type](d.encode('utf-8'), length)
-        elif hash_type in ["cSHAKE128", "cSHAKE256"]:
-            customization = input("Enter customization string: ")
-            length = int(input("Enter output length (bytes): "))
-            hashed_value = hash_functions[hash_type](d.encode('utf-8'), length, customization)
-        elif hash_type in ["KMAC128", "KMAC256"]:
-            key = os.urandom(16)
-            customization = input("Enter customization string: ")
-            hashed_value = hash_functions[hash_type](d.encode('utf-8'), key, customization)
-        elif hash_type == "Poly1305":
-            key = os.urandom(32)
-            hashed_value = hash_functions[hash_type](d.encode('utf-8'), key)
-        else:
-            hashed_value = hash_functions[hash_type](d.encode('utf-8')).digest()
-        print(f"Hashed value: {hashed_value.hex()}")
+    if hash_type in ["SHAKE128", "SHAKE256"]:
+        length = int(input("Enter output length (bytes): "))
+        hashed_value = hash_functions[hash_type](d.encode('utf-8'), length)
+    elif hash_type in ["cSHAKE128", "cSHAKE256"]:
+        customization = input("Enter customization string: ")
+        length = int(input("Enter output length (bytes): "))
+        hashed_value = hash_functions[hash_type](d.encode('utf-8'), length, customization)
+    elif hash_type in ["KMAC128", "KMAC256"]:
+        key = get_random_bytes(16)  # Example key length
+        customization = input("Enter customization string: ")
+        hashed_value = hash_functions[hash_type](d.encode('utf-8'), key, customization)
+    elif hash_type == "Poly1305":
+        key = get_random_bytes(32)  # Example key length
+        hashed_value = hash_functions[hash_type](d.encode('utf-8'), key)
     else:
-        print("Hash function not found")
+        hashed_value = hash_functions[hash_type](d.encode('utf-8')).digest()
+    print(f"Hashed value: {hashed_value.hex()}")
 
-def hash_cracking(hash_value, hash_type, hashcat_path):
+def hash_cracking():
+    hash_value = input("Enter hash value to crack: ")
+    print("Available hash types:")
+    for i, hash_type in enumerate(hashcat_modes.keys(), start=1):
+        print(f"{i}. {hash_type}")
+    choice = int(input("Enter your choice: "))
+    hash_type = list(hashcat_modes.keys())[choice - 1]
+    hashcat_path = input("Enter the path to hashcat: ")
     if hash_type in hashcat_modes:
         mode = hashcat_modes[hash_type]
         try:
@@ -204,16 +214,16 @@ def hash_cracking(hash_value, hash_type, hashcat_path):
 
 def select_aes_type():
     print("Available AES types:")
-    for option in aes_options.keys():
-        print(f"  {option}")
-    selected_option = input("Enter your choice: ")
+    for i, (desc, _) in aes_options.items():
+        print(f"{i}. {desc}")
+    selected_option = int(input("Enter your choice: "))
     return aes_options.get(selected_option, None)
 
 def select_rsa_key_size():
     print("Available RSA key sizes:")
-    for option in rsa_key_sizes.keys():
-        print(f"  {option}")
-    selected_option = input("Enter your choice: ")
+    for i, (desc, _) in rsa_key_sizes.items():
+        print(f"{i}. {desc}")
+    selected_option = int(input("Enter your choice: "))
     return rsa_key_sizes.get(selected_option, None)
 
 def main():
@@ -229,20 +239,13 @@ def main():
         choice = input("Enter your choice: ")
 
         if choice == '1':
-            print("Available hash functions:")
-            for func in hash_functions.keys():
-                print(f"  {func}")
-            hash_type = input("Enter hash function: ")
-            hash_string(hash_type)
+            hash_string()
         elif choice == '2':
-            hash_value = input("Enter hash value to crack: ")
-            hash_type = input("Enter hash type: ")
-            hashcat_path = input("Enter the path to hashcat: ")
-            hash_cracking(hash_value, hash_type, hashcat_path)
+            hash_cracking()
         elif choice == '3':
             aes_type = select_aes_type()
             if aes_type:
-                key = get_random_bytes(aes_type)
+                key = get_random_bytes(aes_type[1])
                 plaintext = input("Enter plaintext: ").encode('utf-8')
                 ciphertext, iv = aes_encrypt(plaintext, key)
                 if ciphertext:
@@ -253,7 +256,7 @@ def main():
         elif choice == '4':
             aes_type = select_aes_type()
             if aes_type:
-                key = get_random_bytes(aes_type)
+                key = get_random_bytes(aes_type[1])
                 iv = decode_base64(input("Enter IV (base64): "))
                 ciphertext = decode_base64(input("Enter ciphertext (base64): "))
                 plaintext = aes_decrypt(ciphertext, key, iv)
@@ -264,7 +267,7 @@ def main():
         elif choice == '5':
             rsa_key_size = select_rsa_key_size()
             if rsa_key_size:
-                private_key, public_key = rsa_generate_key_pair(rsa_key_size)
+                private_key, public_key = rsa_generate_key_pair(rsa_key_size[1])
                 print(f"Public Key: {encode_base64(public_key)}")
                 print(f"Private Key: {encode_base64(private_key)}")
                 plaintext = input("Enter plaintext to encrypt: ").encode('utf-8')
@@ -285,4 +288,9 @@ def main():
             print("Invalid choice, please try again")
 
 if __name__ == "__main__":
-    main()
+    while True:
+        try:
+            main()
+        except KeyboardInterrupt:
+            print("\nProgram interrupted. Exiting...")
+            break
