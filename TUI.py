@@ -155,8 +155,8 @@ def hash_cracking():
         
         if not wordlist_path:
             print(Fore.YELLOW + "No wordlist provided. Switching to combinatorial attack...")
-            no_symbols = input(Fore.CYAN + "No symbols (yes/no)?: ").strip().lower()
-            if no_symbols in ("yes", "y"):
+            no_symbols = input(Fore.CYAN + "No symbols in the ouput (yes/no)?: ").strip().lower()
+            if no_symbols in ("yes", "y", "1"):
                 command = ['hashcat', '-m', hash_mode, hash_file, '-a', '3', '--force', '-1', '?l?u?d', '-i', '?1?1?1?1?1?1?1?1']
             else:
                 print(Fore.YELLOW + "WARNING! It will take a long time to crack if the hash is complex or long. Long passwords increase cracking time exponentially.")
@@ -168,13 +168,27 @@ def hash_cracking():
             command = ['hashcat', '-m', hash_mode, hash_file, wordlist_path, '--force']
             print(Fore.GREEN + f"Dictionary attack command: {' '.join(command)}")
 
-        subprocess.run(command)
-        print("If hashcat is done and quit itself no password shown, you can go ~/.local/share/hashcat/hashcat.potfile to find the password")
+        # Ask if password length is less than 32
+        short_password = input(Fore.CYAN + "Is the password length less than 32 characters? (yes/no): ").strip().lower()
+        if short_password in ("yes", "y"):
+            command.append('-O')  # Append -O for optimized kernel
+        
+        # Ask if going for maximum performance
+        performance_mode = input(Fore.CYAN + "Do you want to use maximum performance? (yes/no): ").strip().lower()
+        if performance_mode in ("yes", "y"):
+            command.append('-w')
+            command.append('3')  # Append -w 3 for maximum performance
+
+        subprocess.run(command, check=True)
+        print(Fore.GREEN + "Cracking complete. If Hashcat quit without showing the password, check ~/.local/share/hashcat/hashcat.potfile.")
+    except subprocess.CalledProcessError as e:
+        print(Fore.RED + f"Hashcat error: {e}")
     except KeyboardInterrupt:
         print(Fore.YELLOW + "\nProgram interrupted. Exiting...")
     finally:
         if os.path.isfile(hash_file):
             os.remove(hash_file)
+
 
 
 
@@ -194,25 +208,62 @@ def choose_hash_type():
         return None
 
 def aes_encrypt_decrypt(operation):
-    print("\n" + Fore.GREEN + "AES Encryption/Decryption")
+    print("\n" + Fore.GREEN + "AES Encryption/Decryption".upper())
+    
+    # Ask for AES key size
     key_size = int(input(Fore.CYAN + "Choose AES key size (1: 128-bit, 2: 192-bit, 3: 256-bit): "))
     if key_size not in aes_options:
         print(Fore.RED + "Invalid key size.")
         return
-
+    
+    # Prompt for AES key
+    key_source = input(Fore.CYAN + "Do you want to load the AES key from a file or enter it manually? (file/manual): ").strip().lower()
+    
+    if key_source in ("file","1","f"):
+        key_path = input(Fore.CYAN + "Enter the path to the AES key file: ").strip()
+        if not os.path.isfile(key_path):
+            print(Fore.RED + "Key file does not exist. Please check the path and try again.")
+            return
+        with open(key_path, "rb") as f:
+            key = f.read()
+    elif key_source in ("manual","2","m"):
+        key = input(Fore.CYAN + f"Enter the AES key ({aes_options[key_size][1] * 8}-bit): ").encode()
+    
+    # Generate random key if none is provided
     key_size_bytes = aes_options[key_size][1]
-    key = input(Fore.CYAN + f"Enter the AES key ({key_size_bytes * 8}-bit): ").encode()
+    if not key:
+        key = get_random_bytes(key_size_bytes)
+        print(Fore.GREEN + f"Generated AES key ({key_size * 8}-bit): {encode_base64(key)}")
+
+    # Ensure the key is the correct size
     if len(key) < key_size_bytes:
         key = key.ljust(key_size_bytes, b'\0')
+    
+    # Prompt for IV
+    iv_source = input(Fore.CYAN + "Do you want to load the IV from a file or enter it manually? (file/manual): ").strip().lower()
 
-    iv = get_random_bytes(AES.block_size)
+    if iv_source == "file":
+        iv_path = input(Fore.CYAN + "Enter the path to the IV file: ").strip()
+        if not os.path.isfile(iv_path):
+            print(Fore.RED + "IV file does not exist. Please check the path and try again.")
+            return
+        with open(iv_path, "rb") as f:
+            iv = f.read()
+    elif iv_source == "manual":
+        iv = input(Fore.CYAN + f"Enter the IV ({AES.block_size}-byte): ").encode()
+    
+    # Generate a random IV if none is provided
+    if not iv or len(iv) < AES.block_size:
+        iv = get_random_bytes(AES.block_size)
+        print(Fore.GREEN + f"Generated IV: {encode_base64(iv)}")
+
     cipher = AES.new(key[:key_size_bytes], AES.MODE_CBC, iv)
 
-    if operation in ("encrypt", "1"):
+    if operation in ("encrypt", "1", "ENCRYPTION"):
         plaintext = input(Fore.CYAN + "Enter plaintext to encrypt: ").encode()
         ciphertext = cipher.encrypt(pad(plaintext, AES.block_size))
         print(Fore.GREEN + "Encrypted text (base64):", encode_base64(iv + ciphertext))
-    elif operation in ("decrypt", "2"):
+    elif operation in ("decrypt", "2", "DECRYPTION"):
         encrypted_text = input(Fore.CYAN + "Enter encrypted text (base64): ")
         encrypted_data = decode_base64(encrypted_text)
         iv = encrypted_data[:AES.block_size]
@@ -221,26 +272,66 @@ def aes_encrypt_decrypt(operation):
         decrypted_data = unpad(cipher.decrypt(ciphertext), AES.block_size)
         print(Fore.GREEN + "Decrypted text:", decrypted_data.decode())
 
+
+
+
 def rsa_encrypt_decrypt(operation):
-    print("\n" + Fore.GREEN + "RSA Encryption/Decryption")
+    print("\n" + Fore.GREEN + "RSA Encryption/Decryption".upper())
     key_size = int(input(Fore.CYAN + "Choose RSA key size (1: 1024-bit, 2: 2048-bit, 3: 4096-bit): "))
     if key_size not in rsa_key_sizes:
         print(Fore.RED + "Invalid key size.")
         return
 
-    rsa_key = RSA.generate(rsa_key_sizes[key_size][1])
-    if operation == "encrypt":
-        public_key = rsa_key.publickey()
+    if operation in ("ENCRYPT", "1", "ENCRYPTION"):
+        public_key_choice = input(Fore.CYAN + "Do you want to load the RSA public key from a file? (yes/no): ").strip().lower()
+        if public_key_choice in ("yes", "y"):
+            public_key_path = input(Fore.CYAN + "Enter the path to the public key file: ").strip()
+            if not os.path.isfile(public_key_path):
+                print(Fore.RED + "Public key file does not exist. Please check the path and try again.")
+                return
+            with open(public_key_path, "rb") as f:
+                public_key = RSA.import_key(f.read())
+        else:
+            rsa_key = RSA.generate(rsa_key_sizes[key_size][1])
+            public_key = rsa_key.publickey()
+            print(Fore.GREEN + "Generated new RSA key pair.")
+
+            # Save the public key to a file
+            with open("public_key.pem", "wb") as pub_file:
+                pub_file.write(public_key.export_key())
+            print(Fore.GREEN + f"Public Key saved as 'public_key.pem'.")
+
         data = input(Fore.CYAN + "Enter data to encrypt: ").encode()
         cipher_rsa = PKCS1_OAEP.new(public_key)
         encrypted_data = cipher_rsa.encrypt(data)
         print(Fore.GREEN + "Encrypted data (base64):", encode_base64(encrypted_data))
-    elif operation == "decrypt":
-        private_key = rsa_key
+
+    elif operation in ("DECRYPT", "2", "DECRYPTION"):
+        private_key_choice = input(Fore.CYAN + "Do you want to load the RSA private key from a file? (yes/no): ").strip().lower()
+        if private_key_choice in ("yes", "y","1"):
+            private_key_path = input(Fore.CYAN + "Enter the path to the private key file: ").strip()
+            if not os.path.isfile(private_key_path):
+                print(Fore.RED + "Private key file does not exist. Please check the path and try again.")
+                return
+            with open(private_key_path, "rb") as f:
+                private_key = RSA.import_key(f.read())
+        else:
+            rsa_key = RSA.generate(rsa_key_sizes[key_size][1])
+            private_key = rsa_key
+            print(Fore.GREEN + "Generated new RSA key pair.")
+
+            # Save the private key to a file
+            with open("private_key.pem", "wb") as priv_file:
+                priv_file.write(private_key.export_key())
+            print(Fore.GREEN + f"Private Key saved as 'private_key.pem'.")
+
         encrypted_data = decode_base64(input(Fore.CYAN + "Enter encrypted data (base64): "))
         cipher_rsa = PKCS1_OAEP.new(private_key)
         decrypted_data = cipher_rsa.decrypt(encrypted_data)
         print(Fore.GREEN + "Decrypted data:", decrypted_data.decode())
+
+
+
 
 def main():
     while True:
