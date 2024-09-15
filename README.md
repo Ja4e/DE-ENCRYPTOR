@@ -72,3 +72,5 @@ Summary
     RSA Encryption/Decryption: 3 key sizes (1024, 2048, 4096 bits)
 
 This tool can be used to hash and dehash data, as well as to encrypt and decrypt using AES and RSA. Note that brute-forcing AES or RSA keys is currently considered infeasible.
+
+recently added overkill encrytion with RSA4096 with AES256
