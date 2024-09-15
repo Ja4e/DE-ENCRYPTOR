@@ -190,7 +190,7 @@ def aes_encrypt_decrypt(operation):
             print(Fore.RED + "AES key file does not exist.")
             while True:
                 key_choice = input(Fore.CYAN + "Would you like to provide the AES key as text or from a file? (text/file): ").strip().lower()
-                if key_choice in ("file","1"):
+                if key_choice in ("file","2"):
                     key_path = input(Fore.CYAN + "Enter the path to the AES key file: ").strip()
                     if os.path.isfile(key_path):
                         with open(key_path, "rb") as key_file:
@@ -198,7 +198,7 @@ def aes_encrypt_decrypt(operation):
                         break
                     else:
                         print(Fore.RED + "AES key file does not exist. Please check the path and try again.")
-                elif key_choice in ("text","2"):
+                elif key_choice in ("text","1"):
                     aes_key = input(Fore.CYAN + f"Enter the AES key ({key_size_bytes * 8}-bit): ").strip().encode()
                     if len(aes_key) != key_size_bytes:
                         print(Fore.RED + "AES key length is incorrect. Ensure it matches the selected key size.")
@@ -215,7 +215,7 @@ def aes_encrypt_decrypt(operation):
             print(Fore.RED + "IV file does not exist.")
             while True:
                 iv_choice = input(Fore.CYAN + "Would you like to provide the IV as text or from a file? (text/file): ").strip().lower()
-                if iv_choice in ("file","1"):
+                if iv_choice in ("file","2"):
                     iv_path = input(Fore.CYAN + "Enter the path to the IV file: ").strip()
                     if os.path.isfile(iv_path):
                         with open(iv_path, "rb") as iv_file:
@@ -223,7 +223,7 @@ def aes_encrypt_decrypt(operation):
                         break
                     else:
                         print(Fore.RED + "IV file does not exist. Please check the path and try again.")
-                elif iv_choice in ("text","2"):
+                elif iv_choice in ("text","1"):
                     iv = input(Fore.CYAN + "Enter the IV (16-byte): ").strip().encode()
                     if len(iv) != AES.block_size:
                         print(Fore.RED + "IV length is incorrect. Ensure it matches the AES block size.")
