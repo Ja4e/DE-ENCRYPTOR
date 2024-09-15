@@ -75,103 +75,122 @@ def get_file_path(prompt, default_path=None):
         else:
             print(Fore.RED + "File does not exist. Please provide a valid file path.")
 
+
+def generate_rsa_key_pair(key_size):
+    rsa_key = RSA.generate(key_size)
+    private_key = rsa_key.export_key()
+    public_key = rsa_key.publickey().export_key()
+
+    with open("private_key.pem", "wb") as priv_file:
+        priv_file.write(private_key)
+    print(Fore.GREEN + "Private Key saved as 'private_key.pem'.")
+
+    with open("public_key.pem", "wb") as pub_file:
+        pub_file.write(public_key)
+    print(Fore.GREEN + "Public Key saved as 'public_key.pem'.")
+
+    return private_key, public_key
+
 def aes_encrypt_decrypt(operation):
     print("\n" + Fore.GREEN + "AES Encryption/Decryption".upper())
-
-    # Ask for AES key size
     key_size = int(input(Fore.CYAN + "Choose AES key size (1: 128-bit, 2: 192-bit, 3: 256-bit): "))
-    if key_size not in aes_options:
-        print(Fore.RED + "Invalid key size.")
-        return
-
-    # Prompt for AES key
-    key_source = input(Fore.CYAN + "Do you want to load the AES key from a file or enter it manually? (file/manual): ").strip().lower()
     
-    if key_source in ("file", "1", "f"):
-        key_path = input(Fore.CYAN + "Enter the path to the AES key file: ").strip()
-        if not os.path.isfile(key_path):
-            print(Fore.RED + "Key file does not exist. Please check the path and try again.")
-            return
-        with open(key_path, "rb") as f:
-            key = f.read()
-    elif key_source in ("manual", "2", "m"):
-        key = input(Fore.CYAN + f"Enter the AES key ({aes_options[key_size][1] * 8}-bit): ").encode()
-        # Ensure the key length is correct
-        key = key.ljust(aes_options[key_size][1], b'\0')
-    else:
-        print(Fore.RED + "Invalid choice.")
+    if key_size not in aes_options:
+        print(Fore.RED + "Invalid AES key size.")
         return
 
-    # Generate random key if none is provided
     key_size_bytes = aes_options[key_size][1]
-    if not key or len(key) < key_size_bytes:
-        key = get_random_bytes(key_size_bytes)
-        print(Fore.GREEN + f"Generated AES key ({key_size * 8}-bit): {encode_base64(key)}")
 
-    # Prompt for IV
-    iv_source = input(Fore.CYAN + "Do you want to load the IV from a file or enter it manually? (file/manual): ").strip().lower()
-
-    if iv_source in ("file","1","f"):
-        iv_path = input(Fore.CYAN + "Enter the path to the IV file: ").strip()
-        if not os.path.isfile(iv_path):
-            print(Fore.RED + "IV file does not exist. Please check the path and try again.")
+    if operation in ("ENCRYPT", "1", "ENCRYPTION"):
+        key_choice = input(Fore.CYAN + "Do you want to load the AES key from a file, enter it manually, or generate a new one? (file/manual/generate): ").strip().lower()
+        if key_choice in ("file", "f", "1"):
+            key_path = input(Fore.CYAN + "Enter the path to the AES key file: ").strip()
+            if not os.path.isfile(key_path):
+                print(Fore.RED + "AES key file does not exist. Please check the path and try again.")
+                return
+            with open(key_path, "rb") as f:
+                aes_key = f.read()
+        elif key_choice in ("manual", "m", "2"):
+            aes_key = input(Fore.CYAN + f"Enter the AES key ({key_size_bytes * 8}-bit): ").strip().encode()
+            if len(aes_key) != key_size_bytes:
+                print(Fore.RED + "AES key length is incorrect. Ensure it matches the selected key size.")
+                return
+        elif key_choice in ("generate", "g", "3"):
+            aes_key = get_random_bytes(key_size_bytes)
+            print(Fore.GREEN + "Generated new AES key:", encode_base64(aes_key))
+            # Note: Do not save the key here
+        else:
+            print(Fore.RED + "Invalid choice.")
             return
-        with open(iv_path, "rb") as f:
-            iv = f.read()
-    elif iv_source in ("manual","2","m"):
-        iv = input(Fore.CYAN + f"Enter the IV ({AES.block_size}-byte): ").encode()
-    else:
-        print(Fore.RED + "Invalid choice.")
-        return
 
-    # Generate a random IV if none is provided
-    if not iv or len(iv) < AES.block_size:
-        iv = get_random_bytes(AES.block_size)
-        print(Fore.GREEN + f"Generated IV: {encode_base64(iv)}")
+        iv_choice = input(Fore.CYAN + "Do you want to load the IV from a file, enter it manually, or generate a new one? (file/manual/generate): ").strip().lower()
+        if iv_choice in ("file", "f", "1"):
+            iv_path = input(Fore.CYAN + "Enter the path to the IV file: ").strip()
+            if not os.path.isfile(iv_path):
+                print(Fore.RED + "IV file does not exist. Please check the path and try again.")
+                return
+            with open(iv_path, "rb") as f:
+                iv = f.read()
+        elif iv_choice in ("manual", "m", "2"):
+            iv = input(Fore.CYAN + "Enter the IV (16-byte): ").strip().encode()
+            if len(iv) != AES.block_size:
+                print(Fore.RED + "IV length is incorrect. Ensure it matches the AES block size.")
+                return
+        elif iv_choice in ("generate", "g", "3"):
+            iv = get_random_bytes(AES.block_size)
+            print(Fore.GREEN + "Generated new IV:", encode_base64(iv))
+        else:
+            print(Fore.RED + "Invalid choice.")
+            return
 
-    cipher = AES.new(key[:key_size_bytes], AES.MODE_CBC, iv)
+        # AES Encryption
+        data = input(Fore.CYAN + "Enter plaintext to encrypt: ").encode()
+        cipher_aes = AES.new(aes_key, AES.MODE_CBC, iv)
+        encrypted_data = cipher_aes.encrypt(pad(data, AES.block_size))
+        encrypted_data_base64 = encode_base64(iv + encrypted_data)
+        print(Fore.GREEN + "Encrypted text (base64):", encrypted_data_base64)
 
-    if operation in ("encrypt", "1", "ENCRYPTION"):
-        plaintext = input(Fore.CYAN + "Enter plaintext to encrypt: ").encode()
-        ciphertext = cipher.encrypt(pad(plaintext, AES.block_size))
-        encrypted_data = iv + ciphertext
-        print(Fore.GREEN + "Encrypted text (base64):", encode_base64(encrypted_data))
-        
-        # Save AES key and IV
-        with open("aes_key.bin", "wb") as key_file:
-            key_file.write(key[:key_size_bytes])
-        print(Fore.GREEN + "AES Key saved as 'aes_key.bin'.")
-        
-        with open("aes_iv.bin", "wb") as iv_file:
-            iv_file.write(iv)
-        print(Fore.GREEN + "AES IV saved as 'aes_iv.bin'.")
+        # Save AES key and IV after encryption
+        if key_choice in ("generate", "g", "3"):
+            with open("aes_key.bin", "wb") as key_file:
+                key_file.write(aes_key)
+            print(Fore.GREEN + "AES Key saved as 'aes_key.bin'.")
 
-    elif operation in ("decrypt", "2", "DECRYPTION"):
-        encrypted_text = input(Fore.CYAN + "Enter encrypted text (base64): ")
-        encrypted_data = decode_base64(encrypted_text)
-        iv = encrypted_data[:AES.block_size]
-        ciphertext = encrypted_data[AES.block_size:]
-        
+        if iv_choice in ("generate", "g", "3"):
+            with open("aes_iv.bin", "wb") as iv_file:
+                iv_file.write(iv)
+            print(Fore.GREEN + "AES IV saved as 'aes_iv.bin'.")
+
+    elif operation in ("DECRYPT", "2", "DECRYPTION"):
         # Load AES key
         if not os.path.isfile("aes_key.bin"):
-            print(Fore.RED + "AES key file does not exist.")
+            print(Fore.RED + "AES key file does not exist. Please check the path and try again.")
             return
         with open("aes_key.bin", "rb") as key_file:
-            key = key_file.read()
-        
+            aes_key = key_file.read()
+
         # Load IV
         if not os.path.isfile("aes_iv.bin"):
-            print(Fore.RED + "AES IV file does not exist.")
+            print(Fore.RED + "IV file does not exist. Please check the path and try again.")
             return
         with open("aes_iv.bin", "rb") as iv_file:
             iv = iv_file.read()
 
-        cipher = AES.new(key[:key_size_bytes], AES.MODE_CBC, iv)
-        decrypted_data = unpad(cipher.decrypt(ciphertext), AES.block_size)
-        print(Fore.GREEN + "Decrypted text:", decrypted_data.decode())
+        # Decrypt AES data
+        encrypted_data_base64 = input(Fore.CYAN + "Enter encrypted data (base64): ")
+        encrypted_data = decode_base64(encrypted_data_base64)
+        iv = encrypted_data[:AES.block_size]
+        ciphertext = encrypted_data[AES.block_size:]
+        
+        cipher_aes = AES.new(aes_key, AES.MODE_CBC, iv)
+        try:
+            decrypted_data = unpad(cipher_aes.decrypt(ciphertext), AES.block_size)
+            print(Fore.GREEN + "Decrypted text:", decrypted_data.decode())
+        except (ValueError, KeyError) as e:
+            print(Fore.RED + f"Decryption failed: {e}")
+
     else:
         print(Fore.RED + "Invalid operation.")
-
 
 
 
@@ -545,14 +564,12 @@ def rsa_encrypt_decrypt(operation):
             with open(public_key_path, "rb") as f:
                 public_key = RSA.import_key(f.read())
         else:
-            rsa_key = RSA.generate(rsa_key_sizes[key_size][1])
-            public_key = rsa_key.publickey()
-            print(Fore.GREEN + "Generated new RSA key pair.")
+            private_key, public_key = generate_rsa_key_pair(rsa_key_sizes[key_size][1])
+            public_key = RSA.import_key(public_key)  # Reimport public key to use for encryption
 
-            # Save the public key to a file
-            with open("public_key.pem", "wb") as pub_file:
-                pub_file.write(public_key.export_key())
-            print(Fore.GREEN + "Public Key saved as 'public_key.pem'.")
+        # Generate and output AES key
+        aes_key = get_random_bytes(32)  # AES-256 key
+        print(Fore.GREEN + "Generated AES Key (base64):", encode_base64(aes_key))
 
         data = input(Fore.CYAN + "Enter data to encrypt: ").encode()
         cipher_rsa = PKCS1_OAEP.new(public_key)
