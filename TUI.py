@@ -105,11 +105,23 @@ def aes_encrypt_decrypt(operation):
         key_choice = input(Fore.CYAN + "Do you want to load the AES key from a file, enter it manually, or generate a new one? (file/manual/generate): ").strip().lower()
         if key_choice in ("file", "f", "1"):
             key_path = input(Fore.CYAN + "Enter the path to the AES key file: ").strip()
-            if not os.path.isfile(key_path):
-                print(Fore.RED + "AES key file does not exist. Please check the path and try again.")
-                return
-            with open(key_path, "rb") as f:
-                aes_key = f.read()
+            if os.path.isfile(key_path):
+                with open(key_path, "rb") as f:
+                    aes_key = f.read()
+            else:
+                print(Fore.RED + "AES key file does not exist.")
+                key_choice = input(Fore.CYAN + "Would you like to enter the key manually or generate a new one? (manual/generate): ").strip().lower()
+                if key_choice == "manual":
+                    aes_key = input(Fore.CYAN + f"Enter the AES key ({key_size_bytes * 8}-bit): ").strip().encode()
+                    if len(aes_key) != key_size_bytes:
+                        print(Fore.RED + "AES key length is incorrect. Ensure it matches the selected key size.")
+                        return
+                elif key_choice == "generate":
+                    aes_key = get_random_bytes(key_size_bytes)
+                    print(Fore.GREEN + "Generated new AES key:", encode_base64(aes_key))
+                else:
+                    print(Fore.RED + "Invalid choice.")
+                    return
         elif key_choice in ("manual", "m", "2"):
             aes_key = input(Fore.CYAN + f"Enter the AES key ({key_size_bytes * 8}-bit): ").strip().encode()
             if len(aes_key) != key_size_bytes:
@@ -118,7 +130,6 @@ def aes_encrypt_decrypt(operation):
         elif key_choice in ("generate", "g", "3"):
             aes_key = get_random_bytes(key_size_bytes)
             print(Fore.GREEN + "Generated new AES key:", encode_base64(aes_key))
-            # Note: Do not save the key here
         else:
             print(Fore.RED + "Invalid choice.")
             return
@@ -126,11 +137,23 @@ def aes_encrypt_decrypt(operation):
         iv_choice = input(Fore.CYAN + "Do you want to load the IV from a file, enter it manually, or generate a new one? (file/manual/generate): ").strip().lower()
         if iv_choice in ("file", "f", "1"):
             iv_path = input(Fore.CYAN + "Enter the path to the IV file: ").strip()
-            if not os.path.isfile(iv_path):
-                print(Fore.RED + "IV file does not exist. Please check the path and try again.")
-                return
-            with open(iv_path, "rb") as f:
-                iv = f.read()
+            if os.path.isfile(iv_path):
+                with open(iv_path, "rb") as f:
+                    iv = f.read()
+            else:
+                print(Fore.RED + "IV file does not exist.")
+                iv_choice = input(Fore.CYAN + "Would you like to enter the IV manually or generate a new one? (manual/generate): ").strip().lower()
+                if iv_choice == "manual":
+                    iv = input(Fore.CYAN + "Enter the IV (16-byte): ").strip().encode()
+                    if len(iv) != AES.block_size:
+                        print(Fore.RED + "IV length is incorrect. Ensure it matches the AES block size.")
+                        return
+                elif iv_choice == "generate":
+                    iv = get_random_bytes(AES.block_size)
+                    print(Fore.GREEN + "Generated new IV:", encode_base64(iv))
+                else:
+                    print(Fore.RED + "Invalid choice.")
+                    return
         elif iv_choice in ("manual", "m", "2"):
             iv = input(Fore.CYAN + "Enter the IV (16-byte): ").strip().encode()
             if len(iv) != AES.block_size:
@@ -164,20 +187,70 @@ def aes_encrypt_decrypt(operation):
     elif operation in ("DECRYPT", "2", "DECRYPTION"):
         # Load AES key
         if not os.path.isfile("aes_key.bin"):
-            print(Fore.RED + "AES key file does not exist. Please check the path and try again.")
-            return
-        with open("aes_key.bin", "rb") as key_file:
-            aes_key = key_file.read()
+            print(Fore.RED + "AES key file does not exist.")
+            while True:
+                key_choice = input(Fore.CYAN + "Would you like to provide the AES key as text or from a file? (text/file): ").strip().lower()
+                if key_choice in ("file","1"):
+                    key_path = input(Fore.CYAN + "Enter the path to the AES key file: ").strip()
+                    if os.path.isfile(key_path):
+                        with open(key_path, "rb") as key_file:
+                            aes_key = key_file.read()
+                        break
+                    else:
+                        print(Fore.RED + "AES key file does not exist. Please check the path and try again.")
+                elif key_choice in ("file","2"):
+                    aes_key = input(Fore.CYAN + f"Enter the AES key ({key_size_bytes * 8}-bit): ").strip().encode()
+                    if len(aes_key) != key_size_bytes:
+                        print(Fore.RED + "AES key length is incorrect. Ensure it matches the selected key size.")
+                        continue
+                    break
+                else:
+                    print(Fore.RED + "Invalid choice. Please enter 'text' or 'file'.")
+        else:
+            with open("aes_key.bin", "rb") as key_file:
+                aes_key = key_file.read()
 
         # Load IV
         if not os.path.isfile("aes_iv.bin"):
-            print(Fore.RED + "IV file does not exist. Please check the path and try again.")
-            return
-        with open("aes_iv.bin", "rb") as iv_file:
-            iv = iv_file.read()
+            print(Fore.RED + "IV file does not exist.")
+            while True:
+                iv_choice = input(Fore.CYAN + "Would you like to provide the IV as text or from a file? (text/file): ").strip().lower()
+                if iv_choice in ("file","1"):
+                    iv_path = input(Fore.CYAN + "Enter the path to the IV file: ").strip()
+                    if os.path.isfile(iv_path):
+                        with open(iv_path, "rb") as iv_file:
+                            iv = iv_file.read()
+                        break
+                    else:
+                        print(Fore.RED + "IV file does not exist. Please check the path and try again.")
+                elif iv_choice in ("file","2"):
+                    iv = input(Fore.CYAN + "Enter the IV (16-byte): ").strip().encode()
+                    if len(iv) != AES.block_size:
+                        print(Fore.RED + "IV length is incorrect. Ensure it matches the AES block size.")
+                        continue
+                    break
+                else:
+                    print(Fore.RED + "Invalid choice. Please enter 'text' or 'file'.")
+        else:
+            with open("aes_iv.bin", "rb") as iv_file:
+                iv = iv_file.read()
 
         # Decrypt AES data
-        encrypted_data_base64 = input(Fore.CYAN + "Enter encrypted data (base64): ")
+        source_choice = input(Fore.CYAN + "Do you want to provide the encrypted data as text or from a file? (text/file): ").strip().lower()
+        if source_choice == "file":
+            file_path = input(Fore.CYAN + "Enter the path to the encrypted data file: ").strip()
+            if os.path.isfile(file_path):
+                with open(file_path, "rb") as f:
+                    encrypted_data_base64 = f.read().decode()
+            else:
+                print(Fore.RED + "Encrypted data file does not exist. Please check the path and try again.")
+                return
+        elif source_choice == "text":
+            encrypted_data_base64 = input(Fore.CYAN + "Enter encrypted data (base64): ")
+        else:
+            print(Fore.RED + "Invalid choice.")
+            return
+
         encrypted_data = decode_base64(encrypted_data_base64)
         iv = encrypted_data[:AES.block_size]
         ciphertext = encrypted_data[AES.block_size:]
