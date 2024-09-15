@@ -198,7 +198,7 @@ def aes_encrypt_decrypt(operation):
                         break
                     else:
                         print(Fore.RED + "AES key file does not exist. Please check the path and try again.")
-                elif key_choice in ("file","2"):
+                elif key_choice in ("text","2"):
                     aes_key = input(Fore.CYAN + f"Enter the AES key ({key_size_bytes * 8}-bit): ").strip().encode()
                     if len(aes_key) != key_size_bytes:
                         print(Fore.RED + "AES key length is incorrect. Ensure it matches the selected key size.")
@@ -223,7 +223,7 @@ def aes_encrypt_decrypt(operation):
                         break
                     else:
                         print(Fore.RED + "IV file does not exist. Please check the path and try again.")
-                elif iv_choice in ("file","2"):
+                elif iv_choice in ("text","2"):
                     iv = input(Fore.CYAN + "Enter the IV (16-byte): ").strip().encode()
                     if len(iv) != AES.block_size:
                         print(Fore.RED + "IV length is incorrect. Ensure it matches the AES block size.")
