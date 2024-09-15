@@ -702,7 +702,20 @@ def rsa_encrypt_decrypt(operation):
     else:
         print(Fore.RED + "Invalid operation.")
 
+def base64_encode2():
+    text = input(Fore.CYAN + "Enter the text to encode: ")
+    encoded_bytes = base64.b64encode(text.encode('utf-8'))
+    encoded_str = encoded_bytes.decode('utf-8')
+    print(Fore.GREEN + "Base64 Encoded: " + encoded_str)
 
+def base64_decode2():
+    encoded_text = input(Fore.CYAN + "Enter the Base64 encoded text: ")
+    try:
+        decoded_bytes = base64.b64decode(encoded_text)
+        decoded_str = decoded_bytes.decode('utf-8')
+        print(Fore.GREEN + "Decoded Text: " + decoded_str)
+    except Exception as e:
+        print(Fore.RED + "Error decoding Base64: " + str(e))
 
 def main():
     while True:
@@ -714,7 +727,9 @@ def main():
         table.add_row(["3", "AES Encryption/Decryption"])
         table.add_row(["4", "RSA Encryption/Decryption"])
         table.add_row(["5", "Combined AES-256 and RSA-4096 Encryption/Decryption"])
-        table.add_row(["6", "Exit"])
+        table.add_row(["6", "Base64 Encoding"])
+        table.add_row(["7", "Base64 Decoding"])
+        table.add_row(["8", "Exit"])
         print(table)
 
         choice = input(Fore.CYAN + "Choose an option: ")
@@ -744,10 +759,13 @@ def main():
             else:
                 print(Fore.RED + "Invalid operation.")
         elif choice == '6':
+            base64_encode2()
+        elif choice == '7':
+            base64_decode2()
+        elif choice == '8':
             break
         else:
             print(Fore.RED + "Invalid choice.")
-
 
 if __name__ == "__main__":
     while True:
@@ -756,3 +774,4 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             print(Fore.YELLOW + "\nProgram interrupted. Exiting...")
             break
+
