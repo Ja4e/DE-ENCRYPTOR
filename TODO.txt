@@ -1,3 +1,4 @@
 convert it into GUI
 enable drag and drop support
 Hashcat for some hash not working will fix soon
+OpenSSL script option crooked dont use it yet
