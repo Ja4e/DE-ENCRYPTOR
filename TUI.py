@@ -61,7 +61,6 @@ hashcat_modes = {
 	"BLAKE2b": "600",
 }
 
-# Function to get file path, either use existing or provide a new one
 def get_file_path(prompt, default_path=None):
 	while True:
 		if default_path and os.path.isfile(default_path):
@@ -95,13 +94,6 @@ def encode_base64(data):
     return base64.b64encode(data).decode('utf-8')
 
 def load_aes_key_and_iv(aes_key_file='aes_key.bin', iv_file='iv.bin'):
-    """
-    Load AES key and IV from files. If files do not exist, return None.
-
-    :param aes_key_file: Path to the AES key file.
-    :param iv_file: Path to the IV file.
-    :return: Tuple of (aes_key, iv) or (None, None) if files do not exist.
-    """
     aes_key = None
     iv = None
 
@@ -119,6 +111,11 @@ def load_aes_key_and_iv(aes_key_file='aes_key.bin', iv_file='iv.bin'):
 
     return aes_key, iv
 
+def find_file(filename):
+    current_dir = os.getcwd()
+    file_path = os.path.join(current_dir, filename)
+    return file_path if os.path.isfile(file_path) else None
+
 def aes_encrypt_decrypt(operation):
     print("\n" + Fore.GREEN + "AES Encryption/Decryption".upper())
     key_size = int(input(Fore.CYAN + "Choose AES key size (1: 128-bit, 2: 192-bit, 3: 256-bit): "))
@@ -133,8 +130,10 @@ def aes_encrypt_decrypt(operation):
         key_choice = input(Fore.CYAN + "Do you want to load the AES key from a file, enter it manually, or generate a new one? (file/manual/generate): ").strip().lower()
 
         if key_choice in ("file", "f", "1"):
-            key_path = input(Fore.CYAN + "Enter the path to the AES key file: ").strip()
-            if os.path.isfile(key_path):
+            key_path = input(Fore.CYAN + "Enter the path to the AES key file or press Enter to search for 'aes_key.bin': ").strip()
+            if key_path == "":
+                key_path = find_file("aes_key.bin")
+            if key_path and os.path.isfile(key_path):
                 with open(key_path, "rb") as f:
                     aes_key = f.read()
             else:
@@ -161,10 +160,12 @@ def aes_encrypt_decrypt(operation):
         print(Fore.GREEN + "AES key saved to aes_key.bin")
 
         iv_choice = input(Fore.CYAN + "Do you want to load the IV from a file, enter it manually, or generate a new one? (file/manual/generate): ").strip().lower()
-        
+
         if iv_choice in ("file", "f", "1"):
-            iv_path = input(Fore.CYAN + "Enter the path to the IV file: ").strip()
-            if os.path.isfile(iv_path):
+            iv_path = input(Fore.CYAN + "Enter the path to the IV file or press Enter to search for 'iv.bin': ").strip()
+            if iv_path == "":
+                iv_path = find_file("iv.bin")
+            if iv_path and os.path.isfile(iv_path):
                 with open(iv_path, "rb") as f:
                     iv = f.read()
             else:
@@ -189,6 +190,7 @@ def aes_encrypt_decrypt(operation):
         with open("iv.bin", "wb") as iv_file:
             iv_file.write(iv)
         print(Fore.GREEN + "IV saved to iv.bin")
+        
         cipher = AES.new(aes_key, AES.MODE_CBC, iv)
         plaintext = input(Fore.CYAN + "Enter the plaintext to encrypt: ").encode()
         ciphertext = cipher.encrypt(pad(plaintext, AES.block_size))
@@ -202,8 +204,10 @@ def aes_encrypt_decrypt(operation):
         key_choice = input(Fore.CYAN + "Do you want to load the AES key from a file or enter it manually? (file/manual): ").strip().lower()
         
         if key_choice in ("file", "f","1"):
-            key_path = input(Fore.CYAN + "Enter the path to the AES key file: ").strip()
-            if os.path.isfile(key_path):
+            key_path = input(Fore.CYAN + "Enter the path to the AES key file or press Enter to search for 'aes_key.bin': ").strip()
+            if key_path == "":
+                key_path = find_file("aes_key.bin")
+            if key_path and os.path.isfile(key_path):
                 with open(key_path, "rb") as f:
                     aes_key = f.read()
             else:
@@ -226,8 +230,10 @@ def aes_encrypt_decrypt(operation):
         iv_choice = input(Fore.CYAN + "Do you want to load the IV from a file or enter it manually? (file/manual): ").strip().lower()
         
         if iv_choice in ("file", "f","1"):
-            iv_path = input(Fore.CYAN + "Enter the path to the IV file: ").strip()
-            if os.path.isfile(iv_path):
+            iv_path = input(Fore.CYAN + "Enter the path to the IV file or press Enter to search for 'iv.bin': ").strip()
+            if iv_path == "":
+                iv_path = find_file("iv.bin")
+            if iv_path and os.path.isfile(iv_path):
                 with open(iv_path, "rb") as f:
                     iv = f.read()
             else:
@@ -246,21 +252,25 @@ def aes_encrypt_decrypt(operation):
         else:
             print(Fore.RED + "Invalid choice.")
             return
+            
         if aes_key is None or iv is None:
             print(Fore.RED + "AES key or IV is not set.")
             return
+            
         encrypted_data_base64 = input(Fore.CYAN + "Enter the encrypted data (base64): ").strip()
         try:
             encrypted_data = base64.b64decode(encrypted_data_base64)
         except Exception:
             print(Fore.RED + "Failed to decode encrypted data. Ensure it is correctly base64 encoded.")
             return
+            
         iv_from_data = encrypted_data[:AES.block_size]
         ciphertext = encrypted_data[AES.block_size:]
         cipher_aes = AES.new(aes_key, AES.MODE_CBC, iv_from_data)
         decrypted_data = unpad(cipher_aes.decrypt(ciphertext), AES.block_size)
 
         print(Fore.GREEN + "Decrypted text:", decrypted_data.decode())
+
 
 
 def encode_base64(data):
