@@ -1,6 +1,7 @@
 import hashlib
 import os
 import base64
+import sys
 import subprocess
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.PublicKey import RSA
@@ -13,7 +14,6 @@ from colorama import Fore, Style, init
 
 init(autoreset=True)
 
-# Define AES options and RSA key sizes
 aes_options = {
 	1: ("AES-128", 16),
 	2: ("AES-192", 24),
@@ -26,7 +26,6 @@ rsa_key_sizes = {
 	3: ("RSA-4096", 4096),
 }
 
-# Define hash functions and modes
 hash_functions = {
 	"SHA-512": hashlib.sha512,
 	"SHA-256": hashlib.sha256,
@@ -395,6 +394,7 @@ def hash_cracking():
 			command.append('3')  # Append -w 3 for maximum performance
 
 		subprocess.run(command, check=True)
+		print("Using command: ", command)
 		print(Fore.GREEN + "Cracking complete. If Hashcat quit without showing the password, check ~/.local/share/hashcat/hashcat.potfile.")
 	except subprocess.CalledProcessError as e:
 		print(Fore.RED + f"Hashcat error: {e}")
@@ -439,23 +439,20 @@ def combined_aes_rsa_encrypt_decrypt(operation):
 	print("\n" + Fore.GREEN + "Combined AES-256 and RSA-4096 Encryption/Decryption".upper())
 
 	if operation in ("encrypt", "1", "ENCRYPTION"):
-		# Check if RSA keys exist and prompt user to use existing ones or generate new ones
 		if os.path.isfile("private_key.pem") and os.path.isfile("public_key.pem"):
 			use_existing_rsa = input(Fore.CYAN + "RSA keys found. Do you want to use existing RSA keys? (yes/no): ").strip().lower()
 			if use_existing_rsa in ("no", "n"):
-				rsa_key_size = 3  # RSA-4096
-				rsa_key_sizes = {3: (4096, 4096)}  # Example dictionary
+				rsa_key_size = 3
+				rsa_key_sizes = {3: (4096, 4096)}
 				rsa_key_bits = rsa_key_sizes[rsa_key_size][1]
 				rsa_key = RSA.generate(rsa_key_bits)
 				rsa_public_key = rsa_key.publickey()
 				rsa_private_key = rsa_key
-
-				# Save RSA private key
+				
 				with open("private_key.pem", "wb") as priv_file:
 					priv_file.write(rsa_private_key.export_key())
 				print(Fore.GREEN + "RSA Private Key saved as 'private_key.pem'.")
-
-				# Save RSA public key
+				
 				with open("public_key.pem", "wb") as pub_file:
 					pub_file.write(rsa_public_key.export_key())
 				print(Fore.GREEN + "RSA Public Key saved as 'public_key.pem'.")
@@ -465,31 +462,26 @@ def combined_aes_rsa_encrypt_decrypt(operation):
 				with open("public_key.pem", "rb") as pub_file:
 					rsa_public_key = RSA.import_key(pub_file.read())
 		else:
-			rsa_key_size = 3  # RSA-4096
-			rsa_key_sizes = {3: (4096, 4096)}  # Example dictionary
+			rsa_key_size = 3 
+			rsa_key_sizes = {3: (4096, 4096)}
 			rsa_key_bits = rsa_key_sizes[rsa_key_size][1]
 			rsa_key = RSA.generate(rsa_key_bits)
 			rsa_public_key = rsa_key.publickey()
 			rsa_private_key = rsa_key
-
-			# Save RSA private key
 			with open("private_key.pem", "wb") as priv_file:
 				priv_file.write(rsa_private_key.export_key())
 			print(Fore.GREEN + "RSA Private Key saved as 'private_key.pem'.")
 
-			# Save RSA public key
 			with open("public_key.pem", "wb") as pub_file:
 				pub_file.write(rsa_public_key.export_key())
 			print(Fore.GREEN + "RSA Public Key saved as 'public_key.pem'.")
 
-		# Prompt user for AES key or generate one
 		if os.path.isfile("aes_key.bin"):
 			use_existing_aes = input(Fore.CYAN + "AES key found. Do you want to use existing AES key? (yes/no): ").strip().lower()
 			if use_existing_aes in ("no", "n"):
-				aes_key = get_random_bytes(32)  # AES-256
+				aes_key = get_random_bytes(32)
 				print(Fore.GREEN + "Generated AES Key (base64):", encode_base64(aes_key))
 
-				# Save AES key
 				with open("aes_key.bin", "wb") as aes_file:
 					aes_file.write(aes_key)
 				print(Fore.GREEN + "AES Key saved as 'aes_key.bin'.")
@@ -502,22 +494,18 @@ def combined_aes_rsa_encrypt_decrypt(operation):
 				aes_key_base64 = input(Fore.CYAN + "Enter the AES key (base64): ").strip()
 				aes_key = decode_base64(aes_key_base64)
 			else:
-				aes_key = get_random_bytes(32)  # AES-256
+				aes_key = get_random_bytes(32)
 				print(Fore.GREEN + "Generated AES Key (base64):", encode_base64(aes_key))
 
-			# Save AES key
 			with open("aes_key.bin", "wb") as aes_file:
 				aes_file.write(aes_key)
 			print(Fore.GREEN + "AES Key saved as 'aes_key.bin'.")
 
-		# Generate and save IV
 		if os.path.isfile("iv.bin"):
 			use_existing_iv = input(Fore.CYAN + "IV file found. Do you want to use existing IV? (yes/no): ").strip().lower()
 			if use_existing_iv in ("no", "n"):
 				iv = get_random_bytes(AES.block_size)
 				print(Fore.GREEN + "Generated IV (base64):", encode_base64(iv))
-
-				# Save IV
 				with open("iv.bin", "wb") as iv_file:
 					iv_file.write(iv)
 				print(Fore.GREEN + "IV saved as 'iv.bin'.")
@@ -528,12 +516,10 @@ def combined_aes_rsa_encrypt_decrypt(operation):
 			iv = get_random_bytes(AES.block_size)
 			print(Fore.GREEN + "Generated IV (base64):", encode_base64(iv))
 
-			# Save IV
 			with open("iv.bin", "wb") as iv_file:
 				iv_file.write(iv)
 			print(Fore.GREEN + "IV saved as 'iv.bin'.")
 
-		# Encrypt
 		source_type = input(Fore.CYAN + "Encrypt from text or file? (text/file): ").strip().lower()
 		if source_type in ("file", "2"):
 			file_path = input(Fore.CYAN + "Enter the path to the file: ").strip()
@@ -548,21 +534,17 @@ def combined_aes_rsa_encrypt_decrypt(operation):
 			print(Fore.RED + "Invalid choice.")
 			return
 
-		# AES encryption
 		aes_cipher = AES.new(aes_key, AES.MODE_CBC, iv)
 		ciphertext = aes_cipher.encrypt(pad(plaintext, AES.block_size))
 
-		# RSA encryption
 		rsa_cipher = PKCS1_OAEP.new(rsa_public_key)
 		encrypted_key = rsa_cipher.encrypt(aes_key)
 		encrypted_data = iv + ciphertext
 
-		# Output
 		print(Fore.GREEN + "Encrypted AES Key (base64):", encode_base64(encrypted_key))
 		print(Fore.GREEN + "Encrypted Data (base64):", encode_base64(encrypted_data))
 
 	elif operation in ("decrypt", "2", "DECRYPTION"):
-		# Load AES key
 		aes_key_path = get_file_path(
 			"Enter the path to the AES key file (aes_key.bin): ", 
 			"aes_key.bin"
@@ -570,7 +552,6 @@ def combined_aes_rsa_encrypt_decrypt(operation):
 		with open(aes_key_path, "rb") as aes_file:
 			aes_key = aes_file.read()
 
-		# Load RSA private key
 		private_key_path = get_file_path(
 			"Enter the path to the private key file (private_key.pem): ", 
 			"private_key.pem"
@@ -578,7 +559,6 @@ def combined_aes_rsa_encrypt_decrypt(operation):
 		with open(private_key_path, "rb") as priv_file:
 			rsa_private_key = RSA.import_key(priv_file.read())
 
-		# Prompt for the encrypted AES key
 		key_source = input(Fore.CYAN + "Is the encrypted AES key provided as text or from file? (text/file): ").strip().lower()
 		if key_source in ("file", "2"):
 			encrypted_key_file_path = input(Fore.CYAN + "Enter the path to the encrypted AES key file: ").strip()
@@ -594,7 +574,6 @@ def combined_aes_rsa_encrypt_decrypt(operation):
 			print(Fore.RED + "Invalid choice.")
 			return
 
-		# RSA decryption
 		rsa_cipher = PKCS1_OAEP.new(rsa_private_key)
 		try:
 			aes_key = rsa_cipher.decrypt(encrypted_key)
@@ -602,15 +581,12 @@ def combined_aes_rsa_encrypt_decrypt(operation):
 			print(Fore.RED + f"Decryption failed: {e}")
 			return
 
-		# Prompt for the encrypted data
 		encrypted_data_base64 = input(Fore.CYAN + "Enter the encrypted data (base64): ").strip()
 		encrypted_data = decode_base64(encrypted_data_base64)
 
-		# Extract IV and ciphertext
 		iv = encrypted_data[:AES.block_size]
 		ciphertext = encrypted_data[AES.block_size:]
 
-		# AES decryption
 		aes_cipher = AES.new(aes_key, AES.MODE_CBC, iv)
 		try:
 			decrypted_data = unpad(aes_cipher.decrypt(ciphertext), AES.block_size)
@@ -640,10 +616,9 @@ def rsa_encrypt_decrypt(operation):
 				public_key = RSA.import_key(f.read())
 		else:
 			private_key, public_key = generate_rsa_key_pair(rsa_key_sizes[key_size][1])
-			public_key = RSA.import_key(public_key)  # Reimport public key to use for encryption
+			public_key = RSA.import_key(public_key)
 
-		# Generate and output AES key
-		aes_key = get_random_bytes(32)  # AES-256 key
+		aes_key = get_random_bytes(32)
 		print(Fore.GREEN + "Generated AES Key (base64):", encode_base64(aes_key))
 
 		data = input(Fore.CYAN + "Enter data to encrypt: ").encode()
@@ -702,15 +677,15 @@ def openssl_operations():
 	
 	category = input(Fore.CYAN + "Choose a category: ").strip()
 
-	if category == '1':  # Ciphers
+	if category == '1':
 		openssl_cipher()
-	elif category == '2':  # Message Digests
+	elif category == '2':
 		openssl_dgst()
-	elif category == '3':  # RSA Operations
+	elif category == '3':
 		openssl_rsa()
-	elif category == '4':  # PKI (X.509 Certificates)
+	elif category == '4':
 		openssl_pki()
-	elif category == '5':  # Password Hashing
+	elif category == '5':
 		openssl_password_hashing()
 	else:
 		print(Fore.RED + "Invalid choice.")
@@ -983,13 +958,13 @@ def main():
             openssl_operations()
         elif choice == '9':
             break
+            sys.exit()
         else:
             print(Fore.RED + "Invalid choice.")
 
 if __name__ == "__main__":
-    while True:
-        try:
-            main()
-        except KeyboardInterrupt:
-            print(Fore.YELLOW + "\nProgram interrupted. Exiting...")
-            break
+	try:
+		main()
+	except KeyboardInterrupt:
+		print(Fore.YELLOW + "\nProgram interrupted. Exiting...")
+		break
