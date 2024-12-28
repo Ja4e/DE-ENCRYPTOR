@@ -2,5 +2,6 @@ pycryptodome
 fuzzywuzzy
 prettytable
 colorama
+python-Levenshtein
 #tkinter
 #tkinterdnd2 #drag and drop func GUI
