@@ -967,4 +967,4 @@ if __name__ == "__main__":
 		main()
 	except KeyboardInterrupt:
 		print(Fore.YELLOW + "\nProgram interrupted. Exiting...")
-		break
+		sys.quit()
