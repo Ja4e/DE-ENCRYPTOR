@@ -363,18 +363,18 @@ def hash_cracking():
 	hash_file = "hash_to_crack.txt"
 	with open(hash_file, "w") as f:
 		f.write(hash_to_crack + "\n")
-	
+
 	try:
 		wordlist_path = input(Fore.CYAN + "Enter the path to your wordlist file (leave blank for brute-force): ").strip()
 		
 		if not wordlist_path:
 			print(Fore.YELLOW + "No wordlist provided. Switching to combinatorial attack...")
-			no_symbols = input(Fore.CYAN + "No symbols in the ouput (yes/no)?: ").strip().lower()
-			if no_symbols in ("yes", "y", "1"):
-				command = ['hashcat', '-m', hash_mode, hash_file, '-a', '3', '--force', '-1', '?l?u?d', '-i', '?1?1?1?1?1?1?1?1']
+			no_symbols = input(Fore.CYAN + "Symbols in the ouput (yes/no)?: ").strip().lower()
+			if no_symbols in ("no", "n", "1"):
+				command = ['hashcat', '-m', hash_mode, hash_file, '-a', '3', '-1', '?l?u?d', '-i', '?1?1?1?1?1?1?1?1']
 			else:
 				print(Fore.YELLOW + "WARNING! It will take a long time to crack if the hash is complex or long. Long passwords increase cracking time exponentially.")
-				command = ['hashcat', '-m', hash_mode, hash_file, '-a', '3', '--force', '-i', '?a?a?a?a?a?a?a?a']
+				command = ['hashcat', '-m', hash_mode, hash_file, '-a', '3', '-i', '?a?a?a?a?a?a?a?a']
 		else:
 			if not os.path.isfile(wordlist_path):
 				print(Fore.RED + "Wordlist file does not exist. Please check the path and try again.")
@@ -382,19 +382,31 @@ def hash_cracking():
 			command = ['hashcat', '-m', hash_mode, hash_file, wordlist_path, '--force']
 			print(Fore.GREEN + f"Dictionary attack command: {' '.join(command)}")
 
-		# Ask if password length is less than 32
-		short_password = input(Fore.CYAN + "Is the password length less than 32 characters? (yes/no): ").strip().lower()
-		if short_password in ("yes", "y"):
-			command.append('-O')  # Append -O for optimized kernel
+		force_password = input(Fore.CYAN + "Enable --force? (It will try to ignore errors/warnings and run) (yes/no): ").strip().lower()
+		if force_password in ("yes", "y","1"):
+			command.append('--force')	
 		
-		# Ask if going for maximum performance
-		performance_mode = input(Fore.CYAN + "Do you want to use maximum performance? (yes/no): ").strip().lower()
-		if performance_mode in ("yes", "y"):
-			command.append('-w')
-			command.append('3')  # Append -w 3 for maximum performance
+		hardware_password = input(Fore.CYAN + "Use CPU, GPU? (Choose '1' CPU or '2' GPU only or '3' for conbined): ").strip().lower()
+		if hardware_password in ("1"):
+			command.append('-D 1')
+		elif hardware_password in ("2"):
+			command.append('-D 2')
+		elif hardware_password in ("3"):
+			command.append('-D 3')
+		else:
+			command.append('-D 3')
 
-		subprocess.run(command, check=True)
+		short_password = input(Fore.CYAN + "Is the password length less than 32 characters? (yes/no): ").strip().lower()
+		if short_password in ("yes", "y","1"):
+			command.append('-O')
+		
+		performance_mode = input(Fore.CYAN + "Do you want to use maximum performance? (yes/no): ").strip().lower()
+		if performance_mode in ("yes", "y","1"):
+			command.append('-w')
+			command.append('3')
+			
 		print("Using command: ", command)
+		subprocess.run(command, check=True)
 		print(Fore.GREEN + "Cracking complete. If Hashcat quit without showing the password, check ~/.local/share/hashcat/hashcat.potfile.")
 	except subprocess.CalledProcessError as e:
 		print(Fore.RED + f"Hashcat error: {e}")
@@ -967,4 +979,3 @@ if __name__ == "__main__":
 		main()
 	except KeyboardInterrupt:
 		print(Fore.YELLOW + "\nProgram interrupted. Exiting...")
-		sys.quit()
