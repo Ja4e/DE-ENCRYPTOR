@@ -386,15 +386,15 @@ def hash_cracking():
 		if force_password in ("yes", "y","1"):
 			command.append('--force')	
 		
-		hardware_password = input(Fore.CYAN + "Use CPU, GPU? (Choose '1' CPU or '2' GPU only or '3' for conbined): ").strip().lower()
-		if hardware_password in ("1"):
-			command.append('-D 1')
-		elif hardware_password in ("2"):
-			command.append('-D 2')
-		elif hardware_password in ("3"):
-			command.append('-D 3')
-		else:
-			command.append('-D 3')
+#		hardware_password = input(Fore.CYAN + "Use CPU, GPU? (Choose '1' CPU or '2' GPU only or '3' for conbined): ").strip().lower()
+#		if hardware_password in ("1"):
+#			command.append('-D 1')
+#		elif hardware_password in ("2"):
+#			command.append('-D 2')
+#		elif hardware_password in ("3"):
+#			command.append('-D 3')
+#		else:
+#			command.append('-D 3')
 
 		short_password = input(Fore.CYAN + "Is the password length less than 32 characters? (yes/no): ").strip().lower()
 		if short_password in ("yes", "y","1"):
