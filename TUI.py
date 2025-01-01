@@ -382,7 +382,7 @@ def hash_cracking():
 			command = ['hashcat', '-m', hash_mode, hash_file, wordlist_path, '--force']
 			print(Fore.GREEN + f"Dictionary attack command: {' '.join(command)}")
 
-		force_password = input(Fore.CYAN + "Enable --force? (It will try to ignore errors/warnings and run) (yes/no): ").strip().lower()
+		force_password = input(Fore.CYAN + "Enable --force? (It will try to ignore errors/warnings and run with unstable drivers if there (not recommended but incase)) (yes/no): ").strip().lower()
 		if force_password in ("yes", "y","1"):
 			command.append('--force')	
 		
