@@ -379,12 +379,16 @@ def hash_cracking():
 			if not os.path.isfile(wordlist_path):
 				print(Fore.RED + "Wordlist file does not exist. Please check the path and try again.")
 				return
-			command = ['hashcat', '-m', hash_mode, hash_file, wordlist_path, '--force']
+			command = ['hashcat', '-m', hash_mode, hash_file, wordlist_path]
 			print(Fore.GREEN + f"Dictionary attack command: {' '.join(command)}")
 
-		force_password = input(Fore.CYAN + "Enable --force? (It will try to ignore errors/warnings and run with unstable drivers if there (not recommended but incase)) (yes/no): ").strip().lower()
+		force_password = input(Fore.CYAN + "Enable --force? (It will try to ignore errors/warnings and run) (yes/no): ").strip().lower()
 		if force_password in ("yes", "y","1"):
 			command.append('--force')	
+			
+		force_backend = input(Fore.CYAN + "Enable --backend-ignore-hip? (For older AMDGPUS (new hashcat update requires it)) (yes/no): ").strip().lower()
+		if force_backend in ("yes","y","1"):
+			command.append("--backend-ignore-hip")
 		
 #		hardware_password = input(Fore.CYAN + "Use CPU, GPU? (Choose '1' CPU or '2' GPU only or '3' for conbined): ").strip().lower()
 #		if hardware_password in ("1"):
